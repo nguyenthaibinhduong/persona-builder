@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, LayoutList, FolderKanban, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, LayoutList, FolderKanban, Briefcase, Layers, Quote, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 const navItems = [
