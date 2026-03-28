@@ -14,6 +14,9 @@ import AdminLayout from "./pages/admin/AdminLayout.tsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import AdminSections from "./pages/admin/AdminSections.tsx";
 import AdminProjects from "./pages/admin/AdminProjects.tsx";
+import AdminExperience from "./pages/admin/AdminExperience.tsx";
+import AdminSkills from "./pages/admin/AdminSkills.tsx";
+import AdminTestimonials from "./pages/admin/AdminTestimonials.tsx";
 
 const queryClient = new QueryClient();
 
