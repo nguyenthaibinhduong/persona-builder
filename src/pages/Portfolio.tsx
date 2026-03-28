@@ -37,12 +37,9 @@ const Portfolio = () => {
     { icon: Star, value: '98%', label: 'Satisfaction' },
   ];
 
-  return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      {/* Hero */}
-      <section className="pt-32 pb-16 md:pt-44 md:pb-24">
+  const sectionMap: Record<string, ReactNode> = {
+    hero: (
+      <section key="hero" className="pt-32 pb-16 md:pt-44 md:pb-24">
         <div className="container-wide">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
@@ -75,24 +72,10 @@ const Portfolio = () => {
           </div>
         </div>
       </section>
+    ),
 
-      {/* Stats */}
-      <section className="py-12 border-y border-border bg-card">
-        <div className="container-wide">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i} className="text-center">
-                <stat.icon className="w-5 h-5 text-accent mx-auto mb-2" />
-                <div className="font-heading text-3xl font-bold text-foreground">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* About */}
-      <section className="section-padding">
+    about: (
+      <section key="about" className="section-padding">
         <div className="container-narrow">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
             <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-6">{t('portfolio.about.title')}</h2>
@@ -100,14 +83,15 @@ const Portfolio = () => {
           </motion.div>
         </div>
       </section>
+    ),
 
-      {/* Skills */}
-      <section className="section-padding bg-card border-y border-border">
+    skills: (
+      <section key="skills" className="section-padding bg-card border-y border-border">
         <div className="container-wide">
           <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-12 text-center">{t('portfolio.skills.title')}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {skillCategories.map((cat, ci) => (
-              <motion.div key={ci} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={ci} className="p-6 rounded-lg border border-border bg-background">
+              <motion.div key={cat.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={ci} className="p-6 rounded-lg border border-border bg-background">
                 <h3 className="font-heading text-lg font-semibold text-foreground mb-4">{cat.name}</h3>
                 <div className="space-y-3">
                   {cat.skills.map((skill, si) => (
@@ -133,9 +117,10 @@ const Portfolio = () => {
           </div>
         </div>
       </section>
+    ),
 
-      {/* Services */}
-      <section className="section-padding">
+    services: (
+      <section key="services" className="section-padding">
         <div className="container-wide">
           <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-12 text-center">{t('portfolio.services.title')}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -153,9 +138,10 @@ const Portfolio = () => {
           </div>
         </div>
       </section>
+    ),
 
-      {/* Projects */}
-      <section id="projects" className="section-padding bg-card border-y border-border">
+    projects: (
+      <section key="projects" id="projects" className="section-padding bg-card border-y border-border">
         <div className="container-wide">
           <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-8 text-center">{t('portfolio.projects.title')}</h2>
           <div className="flex flex-wrap justify-center gap-2 mb-10">
@@ -203,14 +189,15 @@ const Portfolio = () => {
           </div>
         </div>
       </section>
+    ),
 
-      {/* Experience */}
-      <section className="section-padding">
+    experience: (
+      <section key="experience" className="section-padding">
         <div className="container-narrow">
           <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-12 text-center">{t('portfolio.experience.title')}</h2>
           <div className="space-y-8">
             {experiences.map((exp, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}
+              <motion.div key={exp.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}
                 className="relative pl-8 border-l-2 border-border">
                 <div className="absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-accent" />
                 <div className="flex flex-wrap items-baseline gap-2 mb-1">
@@ -229,14 +216,15 @@ const Portfolio = () => {
           </div>
         </div>
       </section>
+    ),
 
-      {/* Testimonials */}
-      <section className="section-padding bg-card border-y border-border">
+    testimonials: (
+      <section key="testimonials" className="section-padding bg-card border-y border-border">
         <div className="container-wide">
           <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-12 text-center">{t('portfolio.testimonials.title')}</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((test, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}
+              <motion.div key={test.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}
                 className="p-6 rounded-lg border border-border bg-background">
                 <div className="flex items-center gap-1 mb-4">
                   {[...Array(5)].map((_, si) => <Star key={si} className="w-4 h-4 fill-accent text-accent" />)}
@@ -256,9 +244,10 @@ const Portfolio = () => {
           </div>
         </div>
       </section>
+    ),
 
-      {/* Contact */}
-      <section id="contact" className="section-padding">
+    contact: (
+      <section key="contact" id="contact" className="section-padding">
         <div className="container-narrow">
           <div className="text-center mb-12">
             <h2 className="font-heading text-3xl md:text-4xl font-semibold text-foreground mb-4">{t('portfolio.contact.title')}</h2>
@@ -282,6 +271,35 @@ const Portfolio = () => {
           </div>
         </div>
       </section>
+    ),
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      {/* Stats - always after hero if hero visible */}
+      {visibleSections.includes('hero') && (
+        <>
+          {sectionMap.hero}
+          <section className="py-12 border-y border-border bg-card">
+            <div className="container-wide">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                {stats.map((stat, i) => (
+                  <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i} className="text-center">
+                    <stat.icon className="w-5 h-5 text-accent mx-auto mb-2" />
+                    <div className="font-heading text-3xl font-bold text-foreground">{stat.value}</div>
+                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* Render remaining sections in admin-defined order */}
+      {visibleSections.filter(k => k !== 'hero').map(key => sectionMap[key] || null)}
 
       <Footer />
     </div>
