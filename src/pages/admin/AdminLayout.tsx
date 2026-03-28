@@ -1,11 +1,14 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, LayoutList, FolderKanban, ArrowLeft, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, LayoutList, FolderKanban, Briefcase, Layers, Quote, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/sections', label: 'Sections', icon: LayoutList },
   { to: '/admin/projects', label: 'Projects', icon: FolderKanban },
+  { to: '/admin/experience', label: 'Experience', icon: Briefcase },
+  { to: '/admin/skills', label: 'Skills', icon: Layers },
+  { to: '/admin/testimonials', label: 'Testimonials', icon: Quote },
 ];
 
 const AdminLayout = () => {

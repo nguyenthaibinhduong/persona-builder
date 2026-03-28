@@ -14,6 +14,9 @@ import AdminLayout from "./pages/admin/AdminLayout.tsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.tsx";
 import AdminSections from "./pages/admin/AdminSections.tsx";
 import AdminProjects from "./pages/admin/AdminProjects.tsx";
+import AdminExperience from "./pages/admin/AdminExperience.tsx";
+import AdminSkills from "./pages/admin/AdminSkills.tsx";
+import AdminTestimonials from "./pages/admin/AdminTestimonials.tsx";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +37,9 @@ const App = () => (
                   <Route index element={<AdminDashboard />} />
                   <Route path="sections" element={<AdminSections />} />
                   <Route path="projects" element={<AdminProjects />} />
+                  <Route path="experience" element={<AdminExperience />} />
+                  <Route path="skills" element={<AdminSkills />} />
+                  <Route path="testimonials" element={<AdminTestimonials />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
