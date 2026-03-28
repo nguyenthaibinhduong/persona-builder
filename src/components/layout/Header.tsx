@@ -15,6 +15,7 @@ const Header = () => {
     { to: '/', label: t('nav.home') },
     { to: '/portfolio', label: t('nav.portfolio') },
     { to: '/cv-builder', label: t('nav.cv_builder') },
+    { to: '/admin', label: 'Admin' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
