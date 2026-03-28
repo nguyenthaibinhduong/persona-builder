@@ -2,9 +2,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { motion } from 'framer-motion';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { sampleProjects, skillCategories, services, testimonials, experiences } from '@/data/sampleData';
+import { useAdmin } from '@/contexts/AdminContext';
+import { services } from '@/data/sampleData';
 import { ArrowRight, ExternalLink, Github, Mail, MapPin, Calendar, Award, Users, Briefcase, Star, Globe, Smartphone, Palette, Layout, BarChart3, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo, ReactNode } from 'react';
 
 const iconMap: Record<string, any> = { Globe, Smartphone, Palette, Layout, BarChart3, Settings };
 
@@ -18,10 +19,16 @@ const fadeUp = {
 
 const Portfolio = () => {
   const { t } = useLanguage();
+  const { sections, projects, experiences, skillCategories, testimonials } = useAdmin();
   const [filter, setFilter] = useState('All');
 
-  const categories = ['All', ...Array.from(new Set(sampleProjects.map(p => p.category)))];
-  const filtered = filter === 'All' ? sampleProjects : sampleProjects.filter(p => p.category === filter);
+  const visibleSections = useMemo(() =>
+    sections.filter(s => s.visible).sort((a, b) => a.order - b.order).map(s => s.key),
+    [sections]
+  );
+
+  const categories = ['All', ...Array.from(new Set(projects.map(p => p.category)))];
+  const filtered = filter === 'All' ? projects : projects.filter(p => p.category === filter);
 
   const stats = [
     { icon: Briefcase, value: '50+', label: 'Projects' },
