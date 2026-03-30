@@ -1,50 +1,54 @@
-name: CI/CD Deploy to GitHub Pages
+name: Deploy GitHub Pages (Free tối đa)
 
 on:
   push:
-    branches:
-      - main   # chỉ deploy khi push main
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'README.md'
+      - '.gitignore'
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Lấy code
+      # 1. Checkout (shallow clone để nhanh hơn)
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      # 2. Setup Node
+      # 2. Setup Node + cache
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
+          cache: npm
 
-      # 3. Cài dependencies
+      # 3. Install (nhanh hơn npm install)
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      # 4. Build project
+      # 4. Build
       - name: Build project
         run: npm run build
 
-      # 5. Upload build artifact
+      # 5. Upload artifact (chỉ build folder)
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./build
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      # 6. Deploy lên GitHub Pages
+      # 6. Deploy luôn (gộp job → tiết kiệm phút)
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
