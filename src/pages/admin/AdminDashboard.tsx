@@ -35,7 +35,7 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      {/* Quick Actions */}
+
       <div>
         <h2 className="font-heading text-xl font-semibold text-foreground mb-4">Quick Actions</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
