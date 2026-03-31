@@ -49,6 +49,5 @@ jobs:
         with:
           path: ./build
 
-      # 6. Deploy luôn (gộp job → tiết kiệm phút)
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
