@@ -15,7 +15,6 @@ const Header = () => {
     { to: '/', label: t('nav.home') },
     { to: '/portfolio', label: t('nav.portfolio') },
     { to: '/cv-builder', label: t('nav.cv_builder') },
-    { to: '/admin', label: 'Admin' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -33,11 +32,10 @@ const Header = () => {
             <Link
               key={link.to}
               to={link.to}
-              className={`text-sm font-medium transition-colors duration-200 ${
-                isActive(link.to) 
-                  ? 'text-foreground' 
+              className={`text-sm font-medium transition-colors duration-200 ${isActive(link.to)
+                  ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
+                }`}
             >
               {link.label}
               {isActive(link.to) && (
