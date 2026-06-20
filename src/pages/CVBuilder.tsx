@@ -1,15 +1,36 @@
-import { useState, useRef } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import Header from '@/components/layout/Header';
-import { sampleCVData } from '@/data/sampleData';
-import { CVData, CVTemplate } from '@/types';
-import {
-  FileText, Download, Eye, Edit3, Plus, Trash2, ChevronDown, ChevronUp,
-  Mail, Phone, MapPin, Globe, Github, Linkedin, GripVertical,
-} from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import {
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Edit3,
+  Eye,
+  FileText,
+  Github,
+  Globe,
+  GripVertical,
+  Linkedin,
+  Mail,
+  MapPin,
+  Phone,
+  Plus,
+  Trash2,
+} from 'lucide-react';
+import Header from '@/components/layout/Header';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { sampleCVData } from '@/data/sampleData';
+import { CVData, CVTemplate } from '@/types';
+
+const templateLabels: Record<CVTemplate, string> = {
+  minimal: 'Tối giản',
+  modern: 'TopCV',
+  executive: 'Chuyên nghiệp',
+};
+
+const sectionTitleClass = 'mb-2 border-b-2 border-blue-900 pb-1.5 text-sm font-bold uppercase tracking-wide text-blue-950';
 
 const CVBuilder = () => {
   const { t } = useLanguage();
@@ -20,11 +41,11 @@ const CVBuilder = () => {
   const [exporting, setExporting] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const updatePersonal = (field: string, value: string) => {
+  const updatePersonal = (field: keyof CVData['personal'], value: string) => {
     setData(prev => ({ ...prev, personal: { ...prev.personal, [field]: value } }));
   };
 
-  const updateExperience = (index: number, field: string, value: any) => {
+  const updateExperience = (index: number, field: string, value: string) => {
     setData(prev => ({
       ...prev,
       experience: prev.experience.map((exp, i) =>
@@ -58,68 +79,152 @@ const CVBuilder = () => {
   const exportPDF = async () => {
     if (!previewRef.current) return;
     setExporting(true);
+    let restorePreviewStyles: (() => void) | undefined;
+
     try {
-      // Force show preview for export
       const wasEditor = activeTab === 'editor';
       if (wasEditor) setActiveTab('preview');
 
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       const element = previewRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        width: 794, // A4 width at 96 DPI
-        windowWidth: 794,
-      });
-
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const pageHeight = 297; // A4 height in mm
+      const pageWidthMm = 210;
+      const pageHeightMm = 297;
+      const pageWidthPx = 794;
+      const pageHeightPx = 1123;
+      const pagePaddingPx = 36;
+      const blockGapPx = 12;
+      const scale = 2;
+      const bottomLimitPx = pageHeightPx - pagePaddingPx;
+      let cursorYPx = pagePaddingPx;
+      let hasPageContent = false;
+      let isFirstPdfPage = true;
 
-      let heightLeft = imgHeight;
-      let position = 0;
+      const originalWidth = element.style.width;
+      const originalMaxWidth = element.style.maxWidth;
+      element.style.width = `${pageWidthPx}px`;
+      element.style.maxWidth = `${pageWidthPx}px`;
+      restorePreviewStyles = () => {
+        element.style.width = originalWidth;
+        element.style.maxWidth = originalMaxWidth;
+      };
 
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      await new Promise(resolve => requestAnimationFrame(resolve));
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      const blocks = Array.from(element.querySelectorAll<HTMLElement>('[data-pdf-block="true"]'));
+
+      const createPageCanvas = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = pageWidthPx * scale;
+        canvas.height = pageHeightPx * scale;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Cannot create PDF canvas context');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        return { canvas, ctx };
+      };
+
+      let page = createPageCanvas();
+
+      const addCanvasPageToPdf = () => {
+        if (!hasPageContent) return;
+        if (!isFirstPdfPage) pdf.addPage();
+        pdf.addImage(page.canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, pageWidthMm, pageHeightMm);
+        isFirstPdfPage = false;
+      };
+
+      for (const block of blocks) {
+        const canvas = await html2canvas(block, {
+          scale,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          width: block.scrollWidth,
+          windowWidth: element.scrollWidth,
+        });
+        let sourceYPx = 0;
+        const blockHeightPx = canvas.height / scale;
+        const maxContentHeightPx = bottomLimitPx - pagePaddingPx;
+
+        if (hasPageContent && cursorYPx + blockHeightPx > bottomLimitPx) {
+          addCanvasPageToPdf();
+          page = createPageCanvas();
+          cursorYPx = pagePaddingPx;
+          hasPageContent = false;
+        }
+
+        while (sourceYPx < blockHeightPx) {
+          const availableHeightPx = bottomLimitPx - cursorYPx;
+          const sliceHeightPx = Math.min(blockHeightPx - sourceYPx, availableHeightPx, maxContentHeightPx);
+
+          page.ctx.drawImage(
+            canvas,
+            0,
+            sourceYPx * scale,
+            canvas.width,
+            sliceHeightPx * scale,
+            pagePaddingPx * scale,
+            cursorYPx * scale,
+            canvas.width,
+            sliceHeightPx * scale
+          );
+
+          cursorYPx += sliceHeightPx + blockGapPx;
+          sourceYPx += sliceHeightPx;
+          hasPageContent = true;
+
+          if (sourceYPx < blockHeightPx) {
+            addCanvasPageToPdf();
+            page = createPageCanvas();
+            cursorYPx = pagePaddingPx;
+            hasPageContent = false;
+          }
+        }
       }
 
-      pdf.save(`${data.personal.fullName.replace(/\s+/g, '_')}_CV.pdf`);
+      addCanvasPageToPdf();
 
+      pdf.save(`${data.personal.fullName.replace(/\s+/g, '_')}_CV.pdf`);
       if (wasEditor) setActiveTab('editor');
     } catch (err) {
       console.error('PDF export failed:', err);
     } finally {
+      restorePreviewStyles?.();
       setExporting(false);
     }
   };
 
-  const toggleSection = (section: string) => {
-    setExpandedSection(prev => prev === section ? null : section);
-  };
-
-  const InputField = ({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (v: string) => void; type?: string }) => (
+  const InputField = ({
+    label,
+    value,
+    onChange,
+    type = 'text',
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    type?: string;
+  }) => (
     <div>
-      <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)}
-        className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/50" />
+      <label className="mb-1 block text-xs text-muted-foreground">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50"
+      />
     </div>
   );
 
-  const SectionHeader = ({ title, section, icon: Icon }: { title: string; section: string; icon: any }) => (
-    <button onClick={() => toggleSection(section)} className="w-full flex items-center justify-between px-4 py-3 bg-secondary/50 rounded-md hover:bg-secondary transition-colors">
+  const SectionHeader = ({ title, section, icon: Icon }: { title: string; section: string; icon: typeof FileText }) => (
+    <button
+      onClick={() => setExpandedSection(prev => (prev === section ? null : section))}
+      className="flex w-full items-center justify-between rounded-md bg-secondary/50 px-4 py-3 transition-colors hover:bg-secondary"
+    >
       <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <Icon className="w-4 h-4 text-accent" /> {title}
+        <Icon className="h-4 w-4 text-accent" /> {title}
       </span>
-      {expandedSection === section ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+      {expandedSection === section ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
     </button>
   );
 
@@ -127,49 +232,56 @@ const CVBuilder = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <div className="pt-20 pb-8 px-4">
-        {/* Top bar */}
-        <div className="max-w-7xl mx-auto mb-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="px-4 pb-8 pt-20">
+        <div className="mx-auto mb-6 max-w-7xl">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <h1 className="font-heading text-2xl font-semibold text-foreground">{t('cv.title')}</h1>
+              <h1 className="font-body text-2xl font-semibold text-foreground">{t('cv.title')}</h1>
               <p className="text-sm text-muted-foreground">{t('cv.subtitle')}</p>
             </div>
             <div className="flex items-center gap-3">
-              {/* Template selector */}
-              <div className="flex items-center gap-1 bg-secondary rounded-md p-1">
+              <div className="flex items-center gap-1 rounded-md bg-secondary p-1">
                 {(['minimal', 'modern', 'executive'] as CVTemplate[]).map(tmpl => (
-                  <button key={tmpl} onClick={() => setTemplate(tmpl)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded capitalize transition-colors ${template === tmpl ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                    {tmpl}
+                  <button
+                    key={tmpl}
+                    onClick={() => setTemplate(tmpl)}
+                    className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${template === tmpl ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                  >
+                    {templateLabels[tmpl]}
                   </button>
                 ))}
               </div>
-              <button onClick={exportPDF} disabled={exporting}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-md text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
-                <Download className="w-4 h-4" /> {exporting ? 'Exporting...' : t('cv.export')}
+              <button
+                onClick={exportPDF}
+                disabled={exporting}
+                className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" /> {exporting ? 'Đang xuất...' : t('cv.export')}
               </button>
             </div>
           </div>
 
-          {/* Mobile tab toggle */}
-          <div className="flex lg:hidden mt-4 bg-secondary rounded-md p-1">
-            <button onClick={() => setActiveTab('editor')}
-              className={`flex-1 py-2 text-sm font-medium rounded flex items-center justify-center gap-1.5 ${activeTab === 'editor' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>
-              <Edit3 className="w-4 h-4" /> {t('cv.editor')}
+          <div className="mt-4 flex rounded-md bg-secondary p-1 lg:hidden">
+            <button
+              onClick={() => setActiveTab('editor')}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded py-2 text-sm font-medium ${activeTab === 'editor' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+                }`}
+            >
+              <Edit3 className="h-4 w-4" /> {t('cv.editor')}
             </button>
-            <button onClick={() => setActiveTab('preview')}
-              className={`flex-1 py-2 text-sm font-medium rounded flex items-center justify-center gap-1.5 ${activeTab === 'preview' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}>
-              <Eye className="w-4 h-4" /> {t('cv.preview')}
+            <button
+              onClick={() => setActiveTab('preview')}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded py-2 text-sm font-medium ${activeTab === 'preview' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+                }`}
+            >
+              <Eye className="h-4 w-4" /> {t('cv.preview')}
             </button>
           </div>
         </div>
 
-        {/* Main content */}
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-6">
-          {/* Editor */}
-          <div className={`space-y-3 overflow-y-auto max-h-[calc(100vh-200px)] pr-2 ${activeTab === 'preview' ? 'hidden lg:block' : ''}`}>
-            {/* Personal Info */}
+        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-2">
+          <div className={`max-h-[calc(100vh-200px)] space-y-3 overflow-y-auto pr-2 ${activeTab === 'preview' ? 'hidden lg:block' : ''}`}>
             <SectionHeader title={t('cv.personal')} section="personal" icon={FileText} />
             {expandedSection === 'personal' && (
               <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} className="space-y-3 px-1">
@@ -192,42 +304,47 @@ const CVBuilder = () => {
               </motion.div>
             )}
 
-            {/* Summary */}
             <SectionHeader title={t('cv.summary')} section="summary" icon={FileText} />
             {expandedSection === 'summary' && (
               <div className="px-1">
-                <textarea value={data.summary} onChange={e => setData(prev => ({ ...prev, summary: e.target.value }))}
-                  rows={4} className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 resize-none" />
+                <textarea
+                  value={data.summary}
+                  onChange={e => setData(prev => ({ ...prev, summary: e.target.value }))}
+                  rows={4}
+                  className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50"
+                />
               </div>
             )}
 
-            {/* Skills */}
             <SectionHeader title={t('cv.skills')} section="skills" icon={FileText} />
             {expandedSection === 'skills' && (
               <div className="space-y-3 px-1">
                 {data.skills.map((group, gi) => (
-                  <div key={gi}>
-                    <label className="text-xs text-muted-foreground mb-1 block">{group.category}</label>
-                    <input value={group.items.join(', ')} onChange={e => {
-                      const newSkills = [...data.skills];
-                      newSkills[gi] = { ...group, items: e.target.value.split(',').map(s => s.trim()) };
-                      setData(prev => ({ ...prev, skills: newSkills }));
-                    }} className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/50" />
+                  <div key={group.category}>
+                    <label className="mb-1 block text-xs text-muted-foreground">{group.category}</label>
+                    <input
+                      value={group.items.join(', ')}
+                      onChange={e => {
+                        const newSkills = [...data.skills];
+                        newSkills[gi] = { ...group, items: e.target.value.split(',').map(s => s.trim()).filter(Boolean) };
+                        setData(prev => ({ ...prev, skills: newSkills }));
+                      }}
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50"
+                    />
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Experience */}
             <SectionHeader title={t('cv.experience')} section="experience" icon={FileText} />
             {expandedSection === 'experience' && (
               <div className="space-y-4 px-1">
                 {data.experience.map((exp, i) => (
-                  <div key={i} className="p-4 border border-border rounded-lg space-y-3">
+                  <div key={`${exp.company}-${i}`} className="space-y-3 rounded-lg border border-border p-4">
                     <div className="flex items-center justify-between">
-                      <GripVertical className="w-4 h-4 text-muted-foreground" />
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
                       <button onClick={() => removeExperience(i)} className="text-destructive hover:text-destructive/80">
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -236,106 +353,130 @@ const CVBuilder = () => {
                     </div>
                     <InputField label={t('cv.duration')} value={exp.duration} onChange={v => updateExperience(i, 'duration', v)} />
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">{t('cv.description')}</label>
-                      <textarea value={exp.description.join('\n')} onChange={e => updateExperience(i, 'description', e.target.value)}
-                        rows={3} className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 resize-none" />
+                      <label className="mb-1 block text-xs text-muted-foreground">{t('cv.description')}</label>
+                      <textarea
+                        value={exp.description.join('\n')}
+                        onChange={e => updateExperience(i, 'description', e.target.value)}
+                        rows={3}
+                        className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/50"
+                      />
                     </div>
                   </div>
                 ))}
-                <button onClick={addExperience} className="w-full py-2 border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors flex items-center justify-center gap-1.5">
-                  <Plus className="w-4 h-4" /> {t('cv.add')} {t('cv.experience')}
+                <button onClick={addExperience} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-sm text-muted-foreground transition-colors hover:border-accent/50 hover:text-foreground">
+                  <Plus className="h-4 w-4" /> {t('cv.add')} {t('cv.experience')}
                 </button>
               </div>
             )}
 
-            {/* Education */}
             <SectionHeader title={t('cv.education')} section="education" icon={FileText} />
             {expandedSection === 'education' && (
               <div className="space-y-4 px-1">
                 {data.education.map((edu, i) => (
-                  <div key={i} className="p-4 border border-border rounded-lg space-y-3">
+                  <div key={`${edu.school}-${i}`} className="space-y-3 rounded-lg border border-border p-4">
                     <div className="flex justify-end">
-                      <button onClick={() => removeEducation(i)} className="text-destructive hover:text-destructive/80"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => removeEducation(i)} className="text-destructive hover:text-destructive/80">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <InputField label={t('cv.school')} value={edu.school} onChange={v => { const n = [...data.education]; n[i] = { ...edu, school: v }; setData(prev => ({ ...prev, education: n })); }} />
-                      <InputField label={t('cv.degree')} value={edu.degree} onChange={v => { const n = [...data.education]; n[i] = { ...edu, degree: v }; setData(prev => ({ ...prev, education: n })); }} />
+                      <InputField label={t('cv.school')} value={edu.school} onChange={v => {
+                        const next = [...data.education];
+                        next[i] = { ...edu, school: v };
+                        setData(prev => ({ ...prev, education: next }));
+                      }} />
+                      <InputField label={t('cv.degree')} value={edu.degree} onChange={v => {
+                        const next = [...data.education];
+                        next[i] = { ...edu, degree: v };
+                        setData(prev => ({ ...prev, education: next }));
+                      }} />
                     </div>
-                    <InputField label={t('cv.duration')} value={edu.duration} onChange={v => { const n = [...data.education]; n[i] = { ...edu, duration: v }; setData(prev => ({ ...prev, education: n })); }} />
+                    <InputField label={t('cv.duration')} value={edu.duration} onChange={v => {
+                      const next = [...data.education];
+                      next[i] = { ...edu, duration: v };
+                      setData(prev => ({ ...prev, education: next }));
+                    }} />
                   </div>
                 ))}
-                <button onClick={addEducation} className="w-full py-2 border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors flex items-center justify-center gap-1.5">
-                  <Plus className="w-4 h-4" /> {t('cv.add')} {t('cv.education')}
+                <button onClick={addEducation} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-sm text-muted-foreground transition-colors hover:border-accent/50 hover:text-foreground">
+                  <Plus className="h-4 w-4" /> {t('cv.add')} {t('cv.education')}
                 </button>
               </div>
             )}
           </div>
 
-          {/* Preview */}
           <div className={`${activeTab === 'editor' ? 'hidden lg:block' : ''}`}>
             <div className="sticky top-24">
-              <div className="bg-muted/30 rounded-lg p-4 overflow-auto max-h-[calc(100vh-200px)]">
-                <div ref={previewRef} className="bg-white text-gray-900 shadow-lg mx-auto" style={{ width: '100%', maxWidth: '794px', minHeight: '1123px', padding: '48px', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: '1.5' }}>
-                  {/* CV Header */}
-                  <div className={`mb-6 ${template === 'modern' ? 'border-b-2 border-amber-500 pb-6' : template === 'executive' ? 'bg-slate-800 text-white -m-[48px] mb-6 p-12' : 'border-b border-gray-200 pb-6'}`}>
-                    <h1 className={`text-2xl font-bold mb-1 ${template === 'executive' ? 'text-white' : 'text-gray-900'}`} style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                      {data.personal.fullName}
-                    </h1>
-                    <p className={`text-base mb-3 ${template === 'executive' ? 'text-gray-300' : template === 'modern' ? 'text-amber-600' : 'text-gray-600'}`}>
-                      {data.personal.title}
-                    </p>
-                    <div className={`flex flex-wrap gap-x-4 gap-y-1 text-xs ${template === 'executive' ? 'text-gray-300' : 'text-gray-500'}`}>
-                      {data.personal.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{data.personal.email}</span>}
-                      {data.personal.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{data.personal.phone}</span>}
-                      {data.personal.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{data.personal.location}</span>}
-                      {data.personal.website && <span className="flex items-center gap-1"><Globe className="w-3 h-3" />{data.personal.website}</span>}
-                      {data.personal.github && <span className="flex items-center gap-1"><Github className="w-3 h-3" />{data.personal.github}</span>}
-                      {data.personal.linkedin && <span className="flex items-center gap-1"><Linkedin className="w-3 h-3" />{data.personal.linkedin}</span>}
+              <div className="max-h-[calc(100vh-200px)] overflow-auto rounded-lg bg-muted/30 p-4">
+                <div
+                  ref={previewRef}
+                  className="mx-auto bg-white text-slate-800 shadow-lg"
+                  style={{
+                    width: '100%',
+                    maxWidth: '794px',
+                    minHeight: '1123px',
+                    padding: '36px',
+                    fontFamily: "'Inter', Arial, sans-serif",
+                    fontSize: '12px',
+                    lineHeight: '1.42',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'normal',
+                  }}
+                >
+                  <div data-pdf-block="true" className="mb-5 overflow-hidden border border-blue-950">
+                    <div className="bg-blue-950 px-5 py-4 text-white">
+                      <h1 className="mb-1 text-2xl font-bold uppercase leading-tight">{data.personal.fullName}</h1>
+                      <p className="text-sm font-semibold uppercase tracking-wide text-blue-100">{data.personal.title}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 bg-slate-50 px-5 py-3 text-xs text-slate-700">
+                      {data.personal.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{data.personal.email}</span>}
+                      {data.personal.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{data.personal.phone}</span>}
+                      {data.personal.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{data.personal.location}</span>}
+                      {data.personal.website && <span className="flex items-center gap-1"><Globe className="h-3 w-3" />{data.personal.website}</span>}
+                      {data.personal.github && <span className="flex items-center gap-1"><Github className="h-3 w-3" />{data.personal.github}</span>}
+                      {data.personal.linkedin && <span className="flex items-center gap-1"><Linkedin className="h-3 w-3" />{data.personal.linkedin}</span>}
                     </div>
                   </div>
 
-                  {/* Summary */}
                   {data.summary && (
-                    <div className="mb-5">
-                      <h2 className={`text-sm font-bold uppercase tracking-wider mb-2 ${template === 'modern' ? 'text-amber-600' : 'text-gray-900'}`} style={{ fontFamily: template !== 'minimal' ? "'Playfair Display', serif" : 'inherit' }}>
-                        Professional Summary
-                      </h2>
-                      <p className="text-gray-600 leading-relaxed">{data.summary}</p>
+                    <div data-pdf-block="true" className="mb-4">
+                      <h2 className={sectionTitleClass}>Giới thiệu bản thân</h2>
+                      <p className="text-justify text-slate-700">{data.summary}</p>
                     </div>
                   )}
 
-                  {/* Skills */}
                   {data.skills.length > 0 && (
-                    <div className="mb-5">
-                      <h2 className={`text-sm font-bold uppercase tracking-wider mb-2 ${template === 'modern' ? 'text-amber-600' : 'text-gray-900'}`} style={{ fontFamily: template !== 'minimal' ? "'Playfair Display', serif" : 'inherit' }}>
-                        Skills
-                      </h2>
-                      <div className="space-y-1.5">
-                        {data.skills.map((group, i) => (
-                          <div key={i} className="flex">
-                            <span className="font-semibold text-gray-700 w-28 shrink-0">{group.category}:</span>
-                            <span className="text-gray-600">{group.items.join(' · ')}</span>
-                          </div>
-                        ))}
-                      </div>
+                    <div data-pdf-block="true" className="mb-4">
+                      <h2 className={sectionTitleClass}>Kỹ năng kỹ thuật</h2>
+                      <table className="w-full border-collapse text-left">
+                        <tbody>
+                          {data.skills.map(group => (
+                            <tr key={group.category} className="border border-slate-300">
+                              <th className="w-36 bg-blue-950 px-3 py-2 align-top text-xs font-bold uppercase text-white">
+                                {group.category}
+                              </th>
+                              <td className="px-3 py-2 text-slate-700">{group.items.filter(Boolean).join(', ')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
 
-                  {/* Experience */}
                   {data.experience.length > 0 && (
-                    <div className="mb-5">
-                      <h2 className={`text-sm font-bold uppercase tracking-wider mb-3 ${template === 'modern' ? 'text-amber-600' : 'text-gray-900'}`} style={{ fontFamily: template !== 'minimal' ? "'Playfair Display', serif" : 'inherit' }}>
-                        Work Experience
-                      </h2>
-                      <div className="space-y-4">
+                    <div className="mb-4">
+                      <div data-pdf-block="true">
+                        <h2 className={sectionTitleClass}>Kinh nghiệm làm việc</h2>
+                      </div>
+                      <div className="space-y-3">
                         {data.experience.map((exp, i) => (
-                          <div key={i}>
-                            <div className="flex items-baseline justify-between">
-                              <h3 className="font-semibold text-gray-900">{exp.role}</h3>
-                              <span className="text-xs text-gray-500">{exp.duration}</span>
+                          <div data-pdf-block="true" key={`${exp.company}-preview-${i}`} className="break-inside-avoid border-l-2 border-blue-950 pl-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <h3 className="font-bold text-slate-900">{exp.role}</h3>
+                              <span className="shrink-0 text-xs font-medium text-slate-500">{exp.duration}</span>
                             </div>
-                            <p className={`text-sm mb-1.5 ${template === 'modern' ? 'text-amber-600' : 'text-gray-500'}`}>{exp.company}</p>
-                            <ul className="list-disc list-outside ml-4 space-y-0.5 text-gray-600">
+                            <p className="mb-1 text-sm font-semibold text-blue-900">{exp.company}</p>
+                            <ul className="ml-4 list-disc space-y-0.5 text-slate-700">
                               {exp.description.map((d, di) => d.trim() && <li key={di}>{d}</li>)}
                             </ul>
                           </div>
@@ -344,66 +485,62 @@ const CVBuilder = () => {
                     </div>
                   )}
 
-                  {/* Projects */}
                   {data.projects.length > 0 && (
-                    <div className="mb-5">
-                      <h2 className={`text-sm font-bold uppercase tracking-wider mb-3 ${template === 'modern' ? 'text-amber-600' : 'text-gray-900'}`} style={{ fontFamily: template !== 'minimal' ? "'Playfair Display', serif" : 'inherit' }}>
-                        Key Projects
-                      </h2>
+                    <div className="mb-4">
+                      <div data-pdf-block="true">
+                        <h2 className={sectionTitleClass}>Dự án</h2>
+                      </div>
                       <div className="space-y-3">
                         {data.projects.map((proj, i) => (
-                          <div key={i}>
-                            <div className="flex items-baseline justify-between">
-                              <h3 className="font-semibold text-gray-900">{proj.name}</h3>
-                              <span className="text-xs text-gray-500">{proj.role}</span>
+                          <div data-pdf-block="true" key={`${proj.name}-preview-${i}`} className="break-inside-avoid border-l-2 border-slate-300 pl-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <h3 className="font-bold text-slate-900">{proj.name}</h3>
+                              <span className="shrink-0 text-xs font-medium text-slate-500">{proj.role}</span>
                             </div>
-                            <p className="text-gray-600 mb-1">{proj.summary}</p>
-                            <p className="text-xs text-gray-500">Tech: {proj.techStack.join(' · ')}</p>
+                            <p className="mb-1 text-slate-700">{proj.summary}</p>
+                            <p className="text-xs text-slate-500">Công nghệ: {proj.techStack.join(' • ')}</p>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Education */}
                   {data.education.length > 0 && (
-                    <div className="mb-5">
-                      <h2 className={`text-sm font-bold uppercase tracking-wider mb-2 ${template === 'modern' ? 'text-amber-600' : 'text-gray-900'}`} style={{ fontFamily: template !== 'minimal' ? "'Playfair Display', serif" : 'inherit' }}>
-                        Education
-                      </h2>
-                      {data.education.map((edu, i) => (
-                        <div key={i} className="flex items-baseline justify-between">
-                          <div>
-                            <span className="font-semibold text-gray-900">{edu.degree}</span>
-                            <span className="text-gray-500"> — {edu.school}</span>
-                          </div>
-                          <span className="text-xs text-gray-500">{edu.duration}</span>
-                        </div>
-                      ))}
+                    <div data-pdf-block="true" className="mb-4">
+                      <h2 className={sectionTitleClass}>Học vấn</h2>
+                      <table className="w-full border-collapse text-left">
+                        <tbody>
+                          {data.education.map((edu, i) => (
+                            <tr key={`${edu.school}-preview-${i}`} className="border border-slate-300">
+                              <th className="w-36 bg-slate-100 px-3 py-2 align-top text-xs font-bold uppercase text-blue-950">
+                                {edu.duration}
+                              </th>
+                              <td className="px-3 py-2">
+                                <p className="font-bold text-slate-900">{edu.school}</p>
+                                <p className="whitespace-pre-line text-slate-700">{edu.degree}</p>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
 
-                  {/* Certifications */}
                   {data.certifications.length > 0 && (
-                    <div className="mb-5">
-                      <h2 className={`text-sm font-bold uppercase tracking-wider mb-2 ${template === 'modern' ? 'text-amber-600' : 'text-gray-900'}`} style={{ fontFamily: template !== 'minimal' ? "'Playfair Display', serif" : 'inherit' }}>
-                        Certifications
-                      </h2>
-                      <ul className="list-disc list-outside ml-4 text-gray-600 space-y-0.5">
+                    <div data-pdf-block="true" className="mb-4">
+                      <h2 className={sectionTitleClass}>Chứng chỉ</h2>
+                      <ul className="ml-4 list-disc space-y-0.5 text-slate-700">
                         {data.certifications.map((cert, i) => <li key={i}>{cert}</li>)}
                       </ul>
                     </div>
                   )}
 
-                  {/* Languages */}
                   {data.languages.length > 0 && (
-                    <div>
-                      <h2 className={`text-sm font-bold uppercase tracking-wider mb-2 ${template === 'modern' ? 'text-amber-600' : 'text-gray-900'}`} style={{ fontFamily: template !== 'minimal' ? "'Playfair Display', serif" : 'inherit' }}>
-                        Languages
-                      </h2>
-                      <div className="flex gap-4 text-gray-600">
+                    <div data-pdf-block="true">
+                      <h2 className={sectionTitleClass}>Ngôn ngữ</h2>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-700">
                         {data.languages.map((lang, i) => (
-                          <span key={i}>{lang.name} <span className="text-gray-400">({lang.level})</span></span>
+                          <span key={i}>{lang.name} <span className="text-slate-500">({lang.level})</span></span>
                         ))}
                       </div>
                     </div>
