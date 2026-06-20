@@ -30,8 +30,8 @@ const App = () => (
             <Sonner />
             <BrowserRouter >
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/portfolio" element={<Portfolio />} />
+                <Route path="/work" element={<Index />} />
+                <Route path="/" element={<Portfolio />} />
                 <Route path="/cv-builder" element={<CVBuilder />} />
                 <Route path="/adminabc" element={<AdminLayout />}>
                   <Route index element={<AdminDashboard />} />

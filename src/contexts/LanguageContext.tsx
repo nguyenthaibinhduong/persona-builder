@@ -14,6 +14,7 @@ const translations: Record<Language, Record<string, string>> = {
   en: {
     // Nav
     'nav.home': 'Home',
+    "nav.work": "Work",
     'nav.portfolio': 'Portfolio',
     'nav.cv_builder': 'CV Builder',
     'nav.about': 'About',
@@ -132,6 +133,7 @@ const translations: Record<Language, Record<string, string>> = {
   },
   vi: {
     'nav.home': 'Trang chủ',
+    'nav.work': 'Công việc',
     'nav.portfolio': 'Portfolio',
     'nav.cv_builder': 'Tạo CV',
     'nav.about': 'Giới thiệu',

@@ -12,8 +12,8 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = [
-    { to: '/', label: t('nav.home') },
-    { to: '/portfolio', label: t('nav.portfolio') },
+    { to: '/', label: t('nav.portfolio') },
+    { to: '/work', label: t('nav.work') },
     { to: '/cv-builder', label: t('nav.cv_builder') },
   ];
 
@@ -33,8 +33,8 @@ const Header = () => {
               key={link.to}
               to={link.to}
               className={`text-sm font-medium transition-colors duration-200 ${isActive(link.to)
-                  ? 'text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
               {link.label}

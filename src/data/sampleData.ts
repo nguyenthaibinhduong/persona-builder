@@ -3,128 +3,87 @@ import { CVData, PortfolioProject } from '@/types';
 export const sampleCVData: CVData = {
   personal: {
     fullName: 'NGUYỄN THÁI BÌNH DƯƠNG',
-    title: 'Frontend Developer (ReactJS / React Native)',
+    title: 'Frontend Developer / React Native Developer',
     email: 'nguyenthaibinhduong182003@gmail.com',
-    phone: '+84 395 659 769',
-    location: 'TP. Hồ Chí Minh, Việt Nam',
-    website: 'github.com/nguyenthaibinhduong',
+    phone: '0395659769',
+    location: 'Quận 12, TP.HCM',
+    website: 'https://realtime-dev-chatapp-dnq2.vercel.app/',
     linkedin: '',
     github: 'github.com/nguyenthaibinhduong',
   },
   summary:
-    'Lập trình viên Frontend có 1.5 nắm kinh nghiệm thực tế trong phát triển ứng dụng Web và Mobile bằng ReactJS, NextJS và React Native. Có thế mạnh về UI/UX, xây dựng reusable components, tích hợp API và responsive design. Có kinh nghiệm phối hợp với backend trong quá trình phát triển sản phẩm thực tế. Luôn mong muốn nâng cao kỹ năng chuyên môn và xây dựng các sản phẩm tối ưu, thân thiện với người dùng.',
+    'Frontend Developer có 2 năm kinh nghiệm thực tế trong phát triển ứng dụng web và mobile với ReactJS, NextJS, React Native, TypeScript và các công nghệ frontend hiện đại. Có kinh nghiệm xây dựng giao diện người dùng, reusable components, tích hợp REST API, quản lý state và tối ưu trải nghiệm trên mobile/tablet. Đã tham gia các sản phẩm thực tế trong lĩnh vực chính quyền điện tử, quản lý bệnh viện và hệ thống realtime. Biết sử dụng các công cụ AI hỗ trợ lập trình như GitHub Copilot, Cursor AI và ChatGPT để tăng tốc debug, refactor và phát triển tính năng, đồng thời vẫn tự kiểm soát logic nghiệp vụ, chất lượng code và trải nghiệm người dùng.',
   skills: [
     {
       category: 'Frontend',
-      items: ['ReactJS', 'NextJS', 'React Native', 'TypeScript', 'JavaScript (ES6+)', 'HTML5 / CSS3', 'TailwindCSS', 'Bootstrap'],
+      items: ['ReactJS', 'NextJS', 'React Native', 'TypeScript', 'JavaScript ES6+', 'HTML5', 'CSS3'],
     },
     {
-      category: 'Backend & API',
-      items: ['ExpressJS', 'NestJS (Cơ bản)', 'PHP (Laravel, Laminas, CodeIgniter)', 'REST API', 'JWT Authentication'],
+      category: 'UI & Styling',
+      items: ['TailwindCSS', 'NativeWind', 'Responsive Design', 'Mobile-first Design', 'Reusable Components'],
     },
     {
-      category: 'Database',
-      items: ['MySQL', 'PostgreSQL', 'MongoDB'],
+      category: 'Testing & Debugging',
+      items: ['Chrome DevTools', 'Postman', 'Error Handling', 'UI Debugging', 'Unit Testing cơ bản'],
     },
     {
-      category: 'Công cụ',
-        items: [
-        'Git / GitHub',
-        'Docker / Docker Compose',
-        'Postman',
-        'Nginx',
-        'Agile / Scrum',
-        'ChatGPT',
-        'GitHub Copilot', 
-        'Claude AI',
-        'Cursor AI',
-        'Figma AI',
-        'Firebase',
-        'OneSignal',
-        'Swagger / OpenAPI',
-      ],
-        
+      category: 'Tools & Workflow',
+      items: ['Git', 'GitHub', 'Figma', 'Docker', 'Firebase', 'Agile/Scrum'],
     },
     {
-      category: 'Kiến thức nghiệp vụ',
-      items: [
-        'Hệ thống quản lý bệnh viện',
-        'Hệ thống chính quyền điện tử',
-        'Quản lý quy trình & tài liệu',
-        'Hệ thống quản lý giải đấu',
-        'Xác thực & phân quyền',
-        'Hệ thống giao tiếp realtime',
-      ]
-    }
+      category: 'AI-assisted Development',
+      items: ['GitHub Copilot', 'Cursor AI', 'ChatGPT', 'Claude AI'],
+    },
+    {
+      category: 'Kỹ năng mềm',
+      items: ['Giải quyết vấn đề', 'Tự học', 'Phối hợp nhóm', 'Đọc hiểu yêu cầu', 'Tư duy sản phẩm'],
+    },
   ],
   experience: [
     {
-      company: 'Dự án HĐND Số',
-      role: 'Frontend Mobile Developer (React Native)',
-      duration: '05/2025 - Hiện tại',
+      company: 'Công ty TNHH Phần mềm Minasoft',
+      role: 'Frontend Developer — ReactJS / React Native',
+      duration: '10/2024 - nay',
       description: [
-        'Phát triển và maintain frontend mobile cho ứng dụng HĐND Số bằng React Native.',
-        'Xây dựng và tối ưu UI/UX cho các tính năng: thông báo, lịch họp, lấy ý kiến, tài liệu, thư viện cá nhân và hậu cần.',
-        'Tích hợp RESTful APIs, quản lý state và tối ưu hiệu năng hiển thị dữ liệu lớn trên mobile/tablet.',
-        'Phối hợp với backend, QA và designer để xử lý bug và cải thiện chất lượng sản phẩm.',
-        'Tham gia xây dựng reusable/base components giúp chuẩn hóa và mở rộng hệ thống frontend.',
-      ],
-    },
-    {
-      company: 'Minara Consulting',
-      role: 'Frontend Developer (ReactJS / React Native)',
-      duration: '10/2024 - 05/2025',
-      description: [
-        'Phát triển các tính năng frontend cho web và mobile bằng ReactJS và React Native.',
-        'Xây dựng giao diện responsive, forms và màn hình quản lý dữ liệu.',
-        'Tích hợp REST APIs và phối hợp với backend để hoàn thiện tính năng sản phẩm.',
-        'Hỗ trợ maintain backend bằng PHP (Laminas, CodeIgniter).',
-        'Làm việc theo mô hình Agile/Scrum và quản lý source code bằng Git/GitHub.',
-      ],
-    },
-    {
-      company: 'Freelance & Dự án cá nhân',
-      role: 'Frontend-oriented Fullstack Developer',
-      duration: '06/2023 - Hiện tại',
-      description: [
-        'Phát triển các ứng dụng web và công cụ nội bộ bằng ReactJS và NextJS.',
-        'Thiết kế reusable UI components và xây dựng cấu trúc frontend dễ maintain.',
-        'Xây dựng các tính năng như authentication, chat realtime, notifications và tích hợp APIs.',
-        'Làm việc với RESTful APIs, state management và WebSocket.',
-        'Phối hợp backend và database để hoàn thiện các tính năng end-to-end.',
+        'Phát triển giao diện web và mobile bằng ReactJS, React Native và TypeScript cho các sản phẩm phần mềm thực tế.',
+        'Đảm nhận phần frontend mobile cho dự án HĐND Số, bao gồm các module: lịch họp, lấy ý kiến, tài liệu, thông báo, thư viện cá nhân và hậu cần.',
+        'Tích hợp REST API và xử lý các trạng thái loading, empty, error, success nhằm cải thiện trải nghiệm người dùng trên mobile/tablet.',
+        'Xây dựng reusable components và base components giúp chuẩn hóa giao diện, giảm thời gian phát triển các màn hình mới.',
+        'Tối ưu hiệu năng render cho các danh sách dữ liệu lớn và các luồng nghiệp vụ phức tạp trên mobile/tablet.',
+        'Phối hợp với backend developer và QA để xử lý lỗi, kiểm tra luồng nghiệp vụ và cải thiện độ ổn định của sản phẩm.',
+        'Hỗ trợ maintain một số module backend PHP Laminas/CodeIgniter để hiểu và xử lý luồng end-to-end khi cần thiết.',
       ],
     },
   ],
   education: [
     {
-      school: 'Đại học Công nghiệp TP.HCM (IUH)',
+      school: 'Đại học Công nghiệp TP. Hồ Chí Minh — IUH',
       degree:
-        'Chuyên ngành: Hệ thống Thông tin\nMôn học liên quan: Lập trình hướng đối tượng (OOP), Web Applications and Technologies, Web Application Development, Application Development',
-      duration: '2021 - 2025',
+        'Cử nhân Hệ thống Thông tin\nDự kiến tốt nghiệp: 2027\nMôn học liên quan: Lập trình hướng đối tượng, Phát triển ứng dụng Web, Phát triển ứng dụng, Cơ sở dữ liệu, Công nghệ phần mềm',
+      duration: '2021 - 2027',
       gpa: '',
     },
   ],
   projects: [
     {
-      name: 'DevChat - Nền tảng cộng tác realtime',
-      role: 'Frontend / Fullstack Developer',
+      name: 'HĐND Số Mobile App',
+      role: 'Frontend Mobile Developer',
       summary:
-        'Phát triển nền tảng chat realtime cho web và mobile. Xây dựng responsive UI, reusable frontend components, triển khai các tính năng realtime như nhắn tin, notifications, user presence và tích hợp APIs cho authentication, chat room, message management.',
-      techStack: ['ReactJS', 'React Native', 'NestJS', 'Redis', 'WebSocket'],
+        'Phát triển giao diện mobile/tablet cho ứng dụng chính quyền điện tử hỗ trợ lịch họp, tài liệu, thông báo, lấy ý kiến và quy trình hậu cần. Xây dựng reusable UI components, tích hợp REST API, quản lý state bằng Redux Toolkit và cải thiện trải nghiệm người dùng thông qua xử lý loading, empty, error.',
+      techStack: ['React Native', 'TypeScript', 'Redux Toolkit', 'REST API'],
     },
     {
-      name: 'Hospital Management System',
+      name: 'CodeSync - Nền tảng nhắn tin công việc cho dev',
       role: 'Frontend / Fullstack Developer',
       summary:
-        'Phát triển dashboard quản lý bệnh viện và hệ thống đặt lịch khám. Xây dựng forms, tables, chức năng phân quyền người dùng và workflow quản lý lịch bác sĩ, bệnh nhân.',
-      techStack: ['Laravel', 'MySQL', 'Bootstrap'],
-      link: 'https://github.com/nguyenthaibinhduong/QLBV',
+        'Xây dựng nền tảng chat realtime cho website với kênh chat làm việc, tích hợp quản lý mã nguồn GitHub và quản lý nhóm chat dự án. Tích hợp WebSocket, user presence, API và Webhook GitHub để hiển thị dữ liệu repositories, commits. Thiết kế các luồng đăng nhập, danh sách hội thoại, phòng chat, xử lý tin nhắn và tạo báo cáo công việc trong tin nhắn.',
+      techStack: ['ReactJS', 'NestJS', 'Redis', 'WebSocket'],
+      link: 'https://realtime-dev-chatapp-dnq2.vercel.app/',
     },
   ],
-  certifications: ['TOEIC 520 (04/2024)'],
+  certifications: [],
   languages: [
     { name: 'Tiếng Việt', level: 'Bản ngữ' },
-    { name: 'Tiếng Anh', level: 'TOEIC 520' },
   ],
 };
 
