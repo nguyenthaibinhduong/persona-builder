@@ -4,6 +4,9 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProjectDemoEmbed from '@/components/ProjectDemoEmbed';
 import { useAdmin } from '@/contexts/AdminContext';
+import { usePortfolioData } from '@/hooks/usePortfolioData';
+import BookingModal from '@/components/BookingModal';
+import type { BookingService } from '@/components/BookingModal';
 import {
   ArrowRight,
   ExternalLink,
@@ -24,8 +27,11 @@ import {
   GitBranch,
   Wand2,
   Zap,
+  Calendar,
+  CheckCircle,
+  ShoppingCart,
 } from 'lucide-react';
-import { useState, useMemo, ReactNode } from 'react';
+import { useState, useMemo, ReactNode, useEffect } from 'react';
 
 // ============================================================================
 // SENIOR-STYLE PORTFOLIO — ONE FILE ONLY
@@ -333,6 +339,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
         techStack: ['ReactJS', 'TypeScript', 'NestJS', 'Redis', 'WebSocket', 'Docker'],
         demoUrl: 'https://realtime-dev-chatapp-dnq2.vercel.app/',
         githubUrl: 'https://github.com/nguyenthaibinhduong',
+        imageUrl: '/images/codesync.png',
       },
       {
         id: 'portfolio-web',
@@ -353,7 +360,8 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
           'Animation bằng Framer Motion và UI theo card-based design.',
         ],
         techStack: ['ReactJS', 'TypeScript', 'TailwindCSS', 'Framer Motion'],
-        demoUrl: 'https://persona-builder-psi.vercel.app/'
+        demoUrl: 'https://persona-builder-psi.vercel.app/',
+        imageUrl: '/images/portfolio.png',
       },
       {
         id: 'freelance-service-ui',
@@ -374,7 +382,8 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
           'Tư duy kết nối frontend với backend entity/API để tránh lỗi dữ liệu hiển thị.',
         ],
         techStack: ['ReactJS', 'TypeScript', 'REST API', 'TailwindCSS'],
-        demoUrl: 'https://creator.minasoft.vn/'
+        demoUrl: 'https://creator.minasoft.vn/',
+        imageUrl: '/images/booking.png',
       },
       {
         id: 'react-native-components',
@@ -395,7 +404,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
           'Dễ tái sử dụng trong nhiều module nghiệp vụ.',
         ],
         techStack: ['React Native', 'TypeScript', 'NativeWind', 'Redux Toolkit'],
-        imageUrl: 'images/reuse.png'
+        imageUrl: '/images/reuse.png',
       },
     ],
     nowBuilding: {
@@ -634,6 +643,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
         techStack: ['ReactJS', 'TypeScript', 'NestJS', 'Redis', 'WebSocket', 'Docker'],
         demoUrl: 'https://realtime-dev-chatapp-dnq2.vercel.app/',
         githubUrl: 'https://github.com/nguyenthaibinhduong',
+        imageUrl: '/images/codesync.png',
       },
       {
         id: 'portfolio-web',
@@ -655,6 +665,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
         ],
         techStack: ['ReactJS', 'TypeScript', 'TailwindCSS', 'Framer Motion'],
         githubUrl: 'https://github.com/nguyenthaibinhduong',
+        imageUrl: '/images/portfolio.png',
       },
       {
         id: 'freelance-service-ui',
@@ -675,6 +686,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
           'Frontend-backend alignment to avoid broken data display.',
         ],
         techStack: ['ReactJS', 'TypeScript', 'REST API', 'TailwindCSS'],
+        imageUrl: '/images/booking.png',
       },
       {
         id: 'react-native-components',
@@ -695,6 +707,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
           'Reusable across multiple business modules.',
         ],
         techStack: ['React Native', 'TypeScript', 'NativeWind', 'Redux Toolkit'],
+        imageUrl: '/images/reuse.png',
       },
     ],
     nowBuilding: {
@@ -786,15 +799,98 @@ const eyebrow =
   'inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent font-mono text-[11px] md:text-xs uppercase tracking-[0.2em]';
 
 const Portfolio = () => {
+  const { sectionTitle, body, lead } = typeScale;
   const { language } = useLanguage() as { t: (key: string) => string; language?: Lang };
-  const { sections } = useAdmin();
+  const { sections, testimonials } = useAdmin();
+  const { profile, projects: dbProjects, services: dbServices } = usePortfolioData();
 
   const lang: Lang = language === 'en' ? 'en' : 'vi';
   const data = portfolioContent[lang];
 
-  const projects = data.projects;
+  // Merge Supabase data with hardcode fallback
+  const resolvedName    = profile?.name  || data.personal.fullName;
+  const resolvedTitle   = profile?.title || data.personal.title;
+  const resolvedEmail   = profile?.email || data.personal.email;
+  const resolvedPhone   = profile?.phone || data.personal.phone;
+  const resolvedGithub  = profile?.github || data.personal.github;
+  const resolvedSummary = profile?.summary || data.hero.subHeadline;
+
+  const projects = dbProjects.length > 0
+    ? dbProjects.map(p => ({
+        id: p.id,
+        title: p.title,
+        category: p.category,
+        description: p.description,
+        role: '',
+        problem: '',
+        solution: '',
+        impact: '',
+        highlights: [],
+        techStack: p.tech_stack ?? [],
+        demoUrl: p.demo_url ?? undefined,
+        githubUrl: p.github_url ?? undefined,
+        imageUrl: p.image_url ?? undefined,
+        featured: p.featured,
+      }))
+    : data.projects.map(p => ({ ...p, featured: false }));
+
+  const dbServicesMapped = dbServices.length > 0 ? dbServices : null;
+
   const experiences = data.experiences;
   const skillCategories = data.skillCategories;
+
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('portfolio-theme') || 'cyber';
+  });
+
+  const [bookingService, setBookingService] = useState<BookingService | null>(null);
+  const [bookingOpen, setBookingOpen] = useState(false);
+
+  const openBooking = (svc: BookingService) => {
+    setBookingService(svc);
+    setBookingOpen(true);
+  };
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('portfolio-theme', theme);
+  }, [theme]);
+
+  const themes = [
+    { id: 'cyber', name: 'Teal' },
+    { id: 'sunset', name: 'Copper' },
+    { id: 'forest', name: 'Forest' },
+    { id: 'royal', name: 'Royal' },
+    { id: 'ocean', name: 'Ocean' },
+  ];
+
+  const themeClasses: Record<string, { color: string; active: string; hover: string }> = {
+    cyber: {
+      color: 'bg-[#14b8a6]',
+      active: 'border-foreground shadow-lg shadow-[#14b8a6]/40 scale-110',
+      hover: 'hover:shadow-lg hover:shadow-[#14b8a6]/40 hover:scale-110'
+    },
+    sunset: {
+      color: 'bg-[#f97316]',
+      active: 'border-foreground shadow-lg shadow-[#f97316]/40 scale-110',
+      hover: 'hover:shadow-lg hover:shadow-[#f97316]/40 hover:scale-110'
+    },
+    forest: {
+      color: 'bg-[#10b981]',
+      active: 'border-foreground shadow-lg shadow-[#10b981]/40 scale-110',
+      hover: 'hover:shadow-lg hover:shadow-[#10b981]/40 hover:scale-110'
+    },
+    royal: {
+      color: 'bg-[#a855f7]',
+      active: 'border-foreground shadow-lg shadow-[#a855f7]/40 scale-110',
+      hover: 'hover:shadow-lg hover:shadow-[#a855f7]/40 hover:scale-110'
+    },
+    ocean: {
+      color: 'bg-[#0ea5e9]',
+      active: 'border-foreground shadow-lg shadow-[#0ea5e9]/40 scale-110',
+      hover: 'hover:shadow-lg hover:shadow-[#0ea5e9]/40 hover:scale-110'
+    }
+  };
 
   const [activeCategory, setActiveCategory] = useState('All');
 
@@ -824,142 +920,125 @@ const Portfolio = () => {
     { key: 'close', text: '}' },
   ];
 
+  const renderCodeLine = (line: { key: string; text: string }) => {
+    if (line.key === 'const') {
+      return (
+        <>
+          <span className="text-purple-400">const </span>
+          <span className="text-blue-300">frontendDeveloper</span>
+          <span className="text-zinc-500"> = &#123;</span>
+        </>
+      );
+    }
+    if (line.key === 'close') {
+      return <span className="text-zinc-500">&#125;</span>;
+    }
+    const parts = line.text.split(':');
+    if (parts.length < 2) return <span>{line.text}</span>;
+    const keyPart = parts[0];
+    const valuePart = parts.slice(1).join(':');
+    return (
+      <>
+        <span className="text-sky-300">{keyPart}</span>
+        <span className="text-zinc-500">: </span>
+        {valuePart.includes('[') ? (
+          <span className="text-amber-300">{valuePart}</span>
+        ) : (
+          <span className="text-emerald-300">{valuePart}</span>
+        )}
+      </>
+    );
+  };
+
   const sectionMap: Record<string, ReactNode> = {
     hero: (
-      <section key="hero" className="relative min-h-screen flex items-center pt-28 pb-20 overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-primary/15 via-background to-background" />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#80808014_1px,transparent_1px),linear-gradient(to_bottom,#80808014_1px,transparent_1px)] bg-[size:26px_26px]" />
-        <div className="absolute -top-32 right-0 w-[520px] h-[520px] bg-accent/15 rounded-full blur-[140px]" />
-        <div className="absolute bottom-0 left-0 w-[420px] h-[420px] bg-primary/10 rounded-full blur-[130px]" />
+      <section key="hero" className="relative min-h-[100dvh] flex items-center pt-20 lg:pt-24 pb-16 lg:pb-20 overflow-hidden">
+        <div className="absolute inset-0 -z-10 bg-background" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(20,184,166,0.08),transparent_35%),radial-gradient(circle_at_80%_30%,rgba(6,182,212,0.08),transparent_30%)]" />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px]" />
 
         <div className="container-wide w-full relative z-10">
-          <div className="grid lg:grid-cols-[1.08fr_0.92fr] gap-12 lg:gap-16 items-center">
-            <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="max-w-3xl">
-              <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-3 mb-7">
-                <span className={eyebrow}>
-                  <Terminal className="w-4 h-4" /> {data.hero.badge}
-                </span>
-                <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-background/70 border border-border/70 text-xs font-mono text-muted-foreground backdrop-blur-md">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                  </span>
+          <div className="grid lg:grid-cols-[1.25fr_0.75fr] gap-12 lg:gap-20 items-center">
+            <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="max-w-3xl text-left">
+              <motion.div variants={fadeInUp} className="mb-6">
+                <span className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/50 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
+                  <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
                   {data.hero.availability}
                 </span>
               </motion.div>
 
-              <motion.div variants={fadeInUp} className="mb-8 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-8">
-                <div className="relative shrink-0 mx-auto sm:mx-0">
-                  <div className="absolute -inset-3 rounded-full bg-gradient-to-tr from-primary to-accent blur-2xl opacity-25" />
-                  <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-primary via-accent to-primary opacity-70" />
-                  <img
-                    src="/images/avatar.png"
-                    alt={data.personal.fullName}
-                    className="relative w-32 h-32 md:w-44 md:h-44 rounded-full object-cover border-4 border-background shadow-2xl ring-1 ring-border"
-                  />
-                  <span className="absolute bottom-3 right-4 w-5 h-5 rounded-full bg-emerald-500 border-[3px] border-background shadow-lg" />
-                </div>
-
-                <div className="text-center sm:text-left">
-                  <p className="font-mono text-xs uppercase tracking-[0.28em] text-muted-foreground mb-3">
-                    {lang === 'vi' ? 'Frontend profile' : 'Frontend profile'}
-                  </p>
-                  <h1 style={{ lineHeight: 1.2 }} className={`${typeScale.heroTitle} text-foreground`}>
+              <motion.div variants={fadeInUp} className="flex items-center gap-4 mb-6">
+                <img
+                  src="/images/avatar.png"
+                  alt={data.personal.fullName}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-accent shadow-md shadow-accent/10"
+                />
+                <div>
+                  <h1 className="text-xl font-bold text-foreground leading-none">
                     {data.personal.fullName}
                   </h1>
-                  <p className="mt-4 text-lg md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {data.personal.title}
                   </p>
                 </div>
               </motion.div>
 
-              <motion.h2 variants={fadeInUp} style={{ lineHeight: 1.2 }} className="text-2xl md:text-4xl lg:text-5xl font-black leading-tight tracking-tight mb-6 max-w-3xl">
+              <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl lg:text-[3.25rem] font-extrabold leading-[1.1] tracking-tight mb-5">
                 {data.hero.headline}
               </motion.h2>
 
-              <motion.p variants={fadeInUp} className={`${typeScale.lead} text-muted-foreground mb-9 max-w-2xl`}>
-                {data.hero.subHeadline}
+              <motion.p variants={fadeInUp} className="text-sm md:text-base leading-relaxed text-muted-foreground mb-8 max-w-xl">
+                {lang === 'vi' 
+                  ? "Chuyên phát triển Web/Mobile với React, Next.js và React Native. Tập trung vào hiệu năng, thiết kế sạch và trải nghiệm người dùng mượt mà."
+                  : "Specializing in Web/Mobile dev with React, Next.js and React Native. Focused on performance, clean design, and smooth UX."}
               </motion.p>
 
-              <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
+              <motion.div variants={fadeInUp} className="flex items-center gap-4">
                 <a
                   href="#projects"
-                  className="px-7 py-4 bg-foreground text-background rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-2 hover:bg-accent group shadow-xl shadow-foreground/10"
+                  className="group inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-6 py-3 text-sm font-semibold transition-all hover:bg-accent hover:text-accent-foreground hover:scale-[0.98] active:scale-[0.96]"
                 >
                   {data.hero.primaryCta}
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </a>
                 <a
                   href="#contact"
-                  className="px-7 py-4 border border-border bg-background/70 backdrop-blur-md hover:border-accent/50 hover:bg-secondary/40 text-foreground rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-2"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-6 py-3 text-sm font-semibold text-foreground transition-all hover:bg-secondary hover:scale-[0.98] active:scale-[0.96]"
                 >
-                  <Mail className="w-5 h-5" /> {data.hero.secondaryCta}
-                </a>
-              </motion.div>
-
-              <motion.div variants={fadeInUp} className="mt-8 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary/30 border border-border/50">
-                  <MapPin className="w-4 h-4 text-accent" /> {data.personal.location}
-                </span>
-                <a href={`https://${data.personal.github}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-secondary/30 border border-border/50 hover:border-accent/50 transition-colors">
-                  <Github className="w-4 h-4 text-accent" /> {data.personal.github}
+                  {data.hero.secondaryCta}
                 </a>
               </motion.div>
             </motion.div>
 
+            {/* Right: Code Console Mockup */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 24 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.15 }}
-              className="relative w-full max-w-xl mx-auto lg:max-w-none"
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+              className="relative hidden lg:block"
             >
-              <motion.span custom={0} variants={floatChip} animate="animate" className="hidden md:flex absolute -top-6 -left-5 z-20 items-center gap-2 px-4 py-2 rounded-full bg-background border border-border shadow-xl text-xs font-mono font-semibold">
-                <Code2 className="w-4 h-4 text-accent" /> React Native
-              </motion.span>
-              <motion.span custom={1} variants={floatChip} animate="animate" className="hidden md:flex absolute top-20 -right-6 z-20 items-center gap-2 px-4 py-2 rounded-full bg-background border border-border shadow-xl text-xs font-mono font-semibold">
-                <Zap className="w-4 h-4 text-accent" /> Responsive UX
-              </motion.span>
-              <motion.span custom={2} variants={floatChip} animate="animate" className="hidden md:flex absolute -bottom-5 right-10 z-20 items-center gap-2 px-4 py-2 rounded-full bg-background border border-border shadow-xl text-xs font-mono font-semibold">
-                <Wand2 className="w-4 h-4 text-accent" /> AI-assisted
-              </motion.span>
-
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary to-accent rounded-[2rem] blur-3xl opacity-20" />
-              <div className="relative rounded-[2rem] border border-border bg-background/90 backdrop-blur-xl shadow-2xl overflow-hidden">
-                <div className="flex items-center justify-between gap-2 px-5 py-3 border-b border-border bg-secondary/40">
+              <div className="absolute -inset-6 rounded-[2rem] bg-gradient-to-tr from-accent/10 via-emerald-500/10 to-transparent blur-2xl" />
+              <div className="relative rounded-2xl border border-border/80 bg-zinc-900 shadow-2xl overflow-hidden font-mono text-sm leading-relaxed">
+                {/* Terminal Header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-zinc-950 border-b border-zinc-800">
                   <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-400/70" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-400/70" />
-                    <span className="w-3 h-3 rounded-full bg-green-400/70" />
+                    <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
+                    <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+                    <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
                   </div>
-                  <span className="font-mono text-xs text-muted-foreground">portfolio.tsx</span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                  <span className="text-xs text-zinc-500 font-sans">Developer.ts</span>
+                  <div className="w-12" />
                 </div>
-
-                <div className="p-5 md:p-7 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto">
-                  {codeLines.map((line, i) => (
-                    <motion.div key={line.key} custom={i} variants={codeLineVariant} initial="hidden" animate="visible" className="text-foreground/90 whitespace-pre">
-                      {line.text}
-                    </motion.div>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-2 gap-px bg-border/60 border-t border-border">
-                  {data.metrics.slice(0, 4).map((metric, i) => (
-                    <div key={metric.label} className="bg-background/90 p-4 md:p-5">
-                      <p className="text-2xl md:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
-                        {metric.value}
-                      </p>
-                      <p className="mt-1 text-xs font-bold text-foreground">{metric.label}</p>
-                      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground line-clamp-2">{metric.helper}</p>
+                {/* Terminal Body */}
+                <div className="p-5 text-left text-zinc-300">
+                  {codeLines.map((line, idx) => (
+                    <div key={line.key} className="flex">
+                      <span className="w-6 text-zinc-600 select-none text-right pr-3">{idx + 1}</span>
+                      <span className="flex-1 whitespace-pre">
+                        {renderCodeLine(line)}
+                      </span>
                     </div>
                   ))}
-                </div>
-
-                <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-secondary/30 text-[11px] font-mono text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <GitBranch className="w-3.5 h-3.5" /> main
-                  </span>
-                  <span>TypeScript · Tailwind · Framer Motion</span>
                 </div>
               </div>
             </motion.div>
@@ -970,38 +1049,55 @@ const Portfolio = () => {
 
     about: (
       <section key="about" id="about" className="py-24 md:py-32 bg-background relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-[360px] h-[360px] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute right-0 top-0 w-[400px] h-[400px] bg-accent/3 rounded-full blur-[120px]" />
         <div className="container-wide relative z-10">
-          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-16 items-start">
+          <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-20 items-start">
+            {/* Left */}
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-80px' }} variants={fadeInUp}>
-              <span className={eyebrow}>{lang === 'vi' ? 'Giới thiệu' : 'About'}</span>
-              <h2 style={{ lineHeight: 1.2 }} className={`${typeScale.sectionTitle} mt-6 mb-6`}>
-                {lang === 'vi' ? 'Không chỉ làm UI đẹp — mình xây UI có thể dùng thật.' : 'Not just good-looking UI — I build interfaces that work in real products.'}
+              <h2 className={`${sectionTitle} mb-6`} style={{ lineHeight: 1.15 }}>
+                {lang === 'vi'
+                  ? <>Không chỉ dựng UI<br /><span className="text-accent">— mình xây sản phẩm.</span></>
+                  : <>Not just UI.<br /><span className="text-accent">I build products.</span></>
+                }
               </h2>
-              <p className={`${typeScale.body} text-muted-foreground mb-8 max-w-2xl`}>{data.aboutText}</p>
+              <p className={`${body} text-muted-foreground mb-8`}>{data.aboutText}</p>
 
-              <div className="space-y-4">
+              {/* Timeline-style detail list */}
+              <div className="space-y-0 border-l-2 border-border/50 pl-6 ml-1">
                 {data.aboutDetails.map((item, i) => (
-                  <motion.div key={item} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} custom={i} className="flex gap-4 rounded-2xl border border-border/60 bg-secondary/20 p-4">
-                    <div className="mt-0.5 w-8 h-8 shrink-0 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <p className="text-sm md:text-base leading-relaxed text-muted-foreground">{item}</p>
+                  <motion.div
+                    key={i}
+                    initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} custom={i}
+                    className="relative pb-6 last:pb-0"
+                  >
+                    <span className="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-background border-2 border-accent flex items-center justify-center">
+                      <span className="w-1 h-1 rounded-full bg-accent" />
+                    </span>
+                    <p className={`${body} text-muted-foreground`}>{item}</p>
                   </motion.div>
                 ))}
               </div>
             </motion.div>
 
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-80px' }} variants={staggerContainer} className="grid sm:grid-cols-2 gap-4">
+            {/* Right: Quick facts */}
+            <motion.div
+              initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-80px' }} variants={staggerContainer}
+              className="grid grid-cols-2 gap-4"
+            >
               {data.quickFacts.map((fact, i) => {
                 const Icon = factIcons[i % factIcons.length];
                 return (
-                  <motion.div key={fact.label} variants={fadeInUp} custom={i} className="group rounded-[1.5rem] border border-border/60 bg-secondary/20 p-6 hover:bg-secondary/40 hover:border-accent/30 transition-all duration-300">
-                    <div className="w-11 h-11 rounded-2xl bg-background border border-border flex items-center justify-center text-accent mb-5 group-hover:scale-110 transition-transform">
+                  <motion.div
+                    key={fact.label}
+                    variants={fadeInUp}
+                    custom={i}
+                    className="group relative flex flex-col p-6 rounded-2xl border border-border/40 bg-card hover:border-accent/30 hover:shadow-lg transition-all duration-300"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-accent mb-4 group-hover:scale-110 transition-transform duration-300">
                       <Icon className="w-5 h-5" />
                     </div>
-                    <p className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">{fact.label}</p>
-                    <p className="text-lg font-black leading-tight text-foreground">{fact.value}</p>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">{fact.label}</span>
+                    <span className="text-base font-bold text-foreground leading-snug">{fact.value}</span>
                   </motion.div>
                 );
               })}
@@ -1012,80 +1108,143 @@ const Portfolio = () => {
     ),
 
     services: (
-      <section key="services" id="services" className="py-24 md:py-28 bg-secondary/10 border-y border-border/30 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(#808080_1px,transparent_1px)] [background-size:18px_18px]" />
+      <section key="services" id="services" className="py-24 border-y border-border/50 bg-border/10 relative overflow-hidden">
         <div className="container-wide relative z-10">
-          <div className="max-w-3xl mb-14">
-            <span className={eyebrow}>
-              <Rocket className="w-4 h-4" /> {lang === 'vi' ? 'Mình có thể làm gì' : 'What I can do'}
-            </span>
-            <h2 style={{ lineHeight: 1.2 }} className={`${typeScale.sectionTitle} mt-6 mb-5`}>
-              {lang === 'vi' ? 'Tập trung vào phần frontend tạo ra giá trị nhìn thấy được.' : 'Frontend work that creates visible product value.'}
-            </h2>
-            <p className={`${typeScale.body} text-muted-foreground max-w-2xl`}>
-              {lang === 'vi'
-                ? 'Các item bên dưới được viết theo hướng nhà tuyển dụng/khách hàng nhìn vào sẽ hiểu ngay mình mạnh ở đâu và có thể giao việc gì.'
-                : 'These items make it clear to recruiters or clients where I am strongest and what kind of work I can take ownership of.'}
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}>
+              <span className={eyebrow}><Layers className="w-3.5 h-3.5" />{lang === 'vi' ? 'Dịch vụ' : 'Services'}</span>
+              <h2 className={`${sectionTitle} mt-4`}>
+                {lang === 'vi' ? 'Dịch vụ & Năng lực' : 'Services & Capabilities'}
+              </h2>
+            </motion.div>
+            <motion.a
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}
+              href="/my-orders"
+              className="shrink-0 inline-flex items-center gap-2 text-sm font-semibold text-accent hover:underline"
+            >
+              {lang === 'vi' ? 'Theo dõi đơn hàng →' : 'Track my orders →'}
+            </motion.a>
           </div>
 
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6">
-            {data.serviceItems.map((item, i) => {
-              const Icon = serviceIcons[i % serviceIcons.length];
-              return (
-                <motion.div key={item.title} initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-80px' }} variants={fadeInUp} custom={i} className="group relative rounded-[1.75rem] border border-border/60 bg-background/80 p-6 md:p-7 overflow-hidden hover:-translate-y-1 hover:shadow-2xl hover:shadow-accent/5 transition-all duration-300">
-                  <div className="absolute -right-12 -top-12 w-32 h-32 rounded-full bg-accent/10 blur-2xl group-hover:bg-accent/20 transition-colors" />
-                  <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-2xl bg-secondary border border-border flex items-center justify-center text-accent mb-6 group-hover:scale-110 transition-transform">
-                      <Icon className="w-6 h-6" />
+          {dbServicesMapped ? (
+            // Supabase services with price + booking
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {dbServicesMapped.map((svc, i) => {
+                const Icon = serviceIcons[i % serviceIcons.length];
+                const priceDisplay = svc.currency === 'vnd'
+                  ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(svc.price)
+                  : `$${(svc.price / 100).toFixed(0)}`;
+                return (
+                  <motion.div
+                    key={svc.id}
+                    initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} custom={i}
+                    className="group relative flex flex-col bg-card border border-border/40 rounded-2xl p-6 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/5 transition-all duration-300"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-5 group-hover:scale-110 transition-transform duration-300">
+                      <Icon className="w-5 h-5" />
                     </div>
-                    <h3 className="text-xl font-black tracking-tight mb-3">{item.title}</h3>
+                    <h3 className="text-base font-bold tracking-tight mb-2 text-foreground">{svc.title}</h3>
+                    <p className="text-xs leading-relaxed text-muted-foreground mb-4 flex-grow">{svc.description}</p>
+
+                    {svc.features && svc.features.length > 0 && (
+                      <ul className="space-y-1.5 mb-5">
+                        {svc.features.slice(0, 3).map((f) => (
+                          <li key={f} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                            <CheckCircle className="w-3.5 h-3.5 text-accent shrink-0 mt-0.5" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <div className="mt-auto pt-4 border-t border-border/30">
+                      <div className="flex items-baseline justify-between mb-3">
+                        <span className="text-xl font-extrabold text-foreground">{priceDisplay}</span>
+                        {svc.delivery_days > 0 && (
+                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <Calendar className="w-3 h-3" />{svc.delivery_days}d
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => openBooking({ id: svc.id, title: svc.title, price: svc.price, currency: svc.currency, delivery_days: svc.delivery_days, payment_link: svc.payment_link })}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-accent text-accent-foreground font-bold text-sm hover:opacity-90 active:scale-[0.98] transition-all"
+                      >
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                        {lang === 'vi' ? 'Đặt dịch vụ' : 'Book now'}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            // Hardcode fallback: simple grid
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border/40 overflow-hidden rounded-2xl border border-border/40">
+              {data.serviceItems.map((item, i) => {
+                const Icon = serviceIcons[i % serviceIcons.length];
+                return (
+                  <motion.div
+                    key={item.title}
+                    initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} custom={i}
+                    className="group relative bg-background p-8 hover:bg-secondary/20 transition-all duration-300"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-accent mb-6 group-hover:scale-110 transition-transform duration-300">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-lg font-bold tracking-tight mb-3 text-foreground">{item.title}</h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">{item.description}</p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
     ),
 
     skills: (
-      <section key="skills" id="skills" className="py-24 md:py-32 bg-background relative overflow-hidden">
+      <section key="skills" id="skills" className="py-24 bg-background relative overflow-hidden">
         <div className="container-wide relative z-10">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-14">
-            <div className="max-w-3xl">
-              <span className={eyebrow}>
-                <Cpu className="w-4 h-4" /> {lang === 'vi' ? 'Kỹ năng' : 'Skills'}
-              </span>
-              <h2 style={{ lineHeight: 1.2 }} className={`${typeScale.sectionTitle} mt-6 mb-5`}>
-                {lang === 'vi' ? 'Stack gọn, thực dụng và đủ để ship sản phẩm.' : 'A practical stack for shipping real products.'}
+          <div className="max-w-2xl mb-12">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}>
+              <h2 className={sectionTitle}>
+                {lang === 'vi' ? 'Kỹ năng & Năng lực kỹ thuật' : 'Skills & Tech Stack'}
               </h2>
-              <p className={`${typeScale.body} text-muted-foreground`}>
+              <p className={`${body} text-muted-foreground mt-4 max-w-xl`}>
                 {lang === 'vi'
-                  ? 'Mình trình bày kỹ năng theo nhóm công việc thay vì chỉ liệt kê công nghệ, để người xem hiểu cách mình dùng chúng trong dự án.'
-                  : 'I group skills by the way I use them in projects, instead of only listing technologies.'}
+                  ? 'Công nghệ và công cụ mình sử dụng trong phát triển web và mobile.'
+                  : 'Technologies and tools I leverage for web and mobile development.'}
               </p>
-            </div>
+            </motion.div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {skillCategories.map((cat, ci) => {
               const Icon = skillIcons[ci % skillIcons.length];
               return (
-                <motion.div key={cat.id} initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-60px' }} variants={fadeInUp} custom={ci} className="group min-h-full p-5 rounded-[1.5rem] bg-secondary/20 border border-border/50 hover:bg-secondary/40 hover:border-accent/30 transition-all duration-300">
-                  <div className="flex items-start gap-4 mb-5">
-                    <div className="w-11 h-11 rounded-2xl bg-background border border-border flex items-center justify-center text-foreground group-hover:text-accent shadow-sm shrink-0">
+                <motion.div
+                  key={cat.id}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  variants={fadeInUp}
+                  custom={ci}
+                  className="p-6 rounded-2xl border border-border/40 bg-card hover:border-accent/30 hover:shadow-lg transition-all duration-300 flex flex-col"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-accent/8 border border-accent/15 flex items-center justify-center text-accent shrink-0">
                       <Icon className="w-5 h-5" />
                     </div>
-                    <div>
-                      <h3 className="text-lg font-black leading-tight">{cat.name}</h3>
-                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{cat.description}</p>
-                    </div>
+                    <h3 className="text-lg font-bold text-foreground">{cat.name}</h3>
                   </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-6 flex-grow">{cat.description}</p>
                   <div className="flex flex-wrap gap-2">
-                    {cat.skills.map((skill, si) => (
-                      <span key={`${cat.id}-${si}`} className="px-3 py-1.5 bg-background border border-border/60 rounded-lg text-xs font-semibold text-foreground/80 hover:text-foreground hover:border-accent/50 transition-colors shadow-sm">
+                    {cat.skills.map((skill) => (
+                      <span
+                        key={skill.name}
+                        className="inline-flex items-center rounded-lg border border-border/50 bg-secondary/30 px-3 py-1.5 text-xs font-semibold text-foreground hover:border-accent/35 hover:bg-accent/5 hover:text-accent transition-all cursor-default"
+                      >
                         {skill.name}
                       </span>
                     ))}
@@ -1099,32 +1258,37 @@ const Portfolio = () => {
     ),
 
     aiWorkflow: (
-      <section key="aiWorkflow" id="ai-workflow" className="py-24 md:py-32 bg-secondary/10 border-y border-border/30 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(#808080_1px,transparent_1px)] [background-size:18px_18px]" />
+      <section key="aiWorkflow" id="ai-workflow" className="py-24 bg-background relative overflow-hidden">
         <div className="container-wide relative z-10">
-          <div className="max-w-3xl mb-16">
-            <span className={eyebrow}>
-              <Wand2 className="w-4 h-4" /> {lang === 'vi' ? 'Quy trình làm việc' : 'Workflow'}
-            </span>
-            <h2 style={{ lineHeight: 1.2 }} className={`${typeScale.sectionTitle} mt-6 mb-5`}>
-              {lang === 'vi' ? 'Làm nhanh hơn bằng AI, nhưng vẫn giữ tư duy kỹ sư.' : 'Faster with AI, still owned by engineering judgment.'}
-            </h2>
-            <p className={`${typeScale.body} text-muted-foreground`}>
-              {lang === 'vi'
-                ? 'Điểm khác biệt là mình không để AI quyết định chất lượng. AI giúp tăng tốc, còn mình chịu trách nhiệm về logic, UI behavior, responsive và khả năng bảo trì.'
-                : 'AI helps me move faster, but I still own the logic, UI behavior, responsiveness, and maintainability.'}
-            </p>
+          <div className="max-w-2xl mb-16">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}>
+              <h2 className={sectionTitle}>
+                {lang === 'vi' ? 'Quy trình tăng tốc với AI' : 'Accelerated AI Workflow'}
+              </h2>
+              <p className={`${body} text-muted-foreground mt-4 max-w-xl`}>
+                {lang === 'vi'
+                  ? 'AI giúp tăng tốc hiệu quả, kết hợp với tư duy phản biện và khả năng kiểm soát chất lượng code của kỹ sư.'
+                  : 'AI accelerates efficiency, paired with engineering judgment and codebase quality controls.'}
+              </p>
+            </motion.div>
           </div>
 
-          <div className="relative grid grid-cols-1 md:grid-cols-5 gap-5">
-            <div className="hidden md:block absolute top-8 left-[10%] right-[10%] h-px bg-border" />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative">
             {data.aiWorkflow.map((step, i) => (
-              <motion.div key={step.title} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} custom={i} className="relative rounded-[1.5rem] border border-border/60 bg-background/90 p-5 md:p-6">
-                <div className="w-14 h-14 rounded-2xl bg-background border-2 border-border flex items-center justify-center font-mono font-black text-accent mb-5 relative z-10 shadow-sm">
-                  0{i + 1}
+              <motion.div
+                key={step.title}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeInUp}
+                custom={i}
+                className="relative flex flex-col p-6 rounded-2xl border border-border/40 bg-card hover:border-accent/30 hover:shadow-lg transition-all duration-300"
+              >
+                <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-5 shrink-0">
+                  <span className="font-mono font-black text-sm text-accent">0{i + 1}</span>
                 </div>
-                <h3 className="text-lg font-black mb-2 tracking-tight">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+                <h3 className="text-base font-bold mb-2 tracking-tight text-foreground">{step.title}</h3>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">{step.description}</p>
               </motion.div>
             ))}
           </div>
@@ -1133,164 +1297,150 @@ const Portfolio = () => {
     ),
 
     projects: (
-      <section key="projects" id="projects" className="py-24 md:py-32 bg-background relative overflow-hidden">
-        <div className="absolute -top-20 -right-24 w-[420px] h-[420px] bg-accent/10 rounded-full blur-[130px]" />
-        <div className="container-wide relative z-10">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
-            <div className="max-w-3xl">
+      <section id="projects" className="py-24 bg-background relative overflow-hidden">
+        <div className="container-wide">
+          {/* Section header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}>
               <span className={eyebrow}>
-                <Layers className="w-4 h-4" /> {lang === 'vi' ? 'Dự án nổi bật' : 'Selected work'}
+                <Rocket className="w-3.5 h-3.5 animate-pulse text-accent" />
+                {lang === 'vi' ? 'Dự án nổi bật' : 'Featured Projects'}
               </span>
-              <h2 style={{ lineHeight: 1.2 }} className={`${typeScale.sectionTitle} mt-6 mb-5`}>
-                {lang === 'vi' ? 'Case study ngắn — không chỉ show ảnh, mà show cách mình giải quyết vấn đề.' : 'Short case studies — not just screenshots, but how I solve problems.'}
+              <h2 className={`${sectionTitle} mt-4`}>
+                {lang === 'vi' ? 'Sản phẩm đã thực hiện' : 'Selected Work'}
               </h2>
-              <p className={`${typeScale.body} text-muted-foreground`}>
-                {lang === 'vi'
-                  ? 'Mỗi dự án đều có vai trò, vấn đề, giải pháp, impact và tech stack để portfolio nhìn chuyên nghiệp hơn khi gửi nhà tuyển dụng.'
-                  : 'Each project includes role, problem, solution, impact, and tech stack for a more professional recruiter-facing portfolio.'}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {projectCategories.map(category => (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() => setActiveCategory(category)}
-                  className={`px-4 py-2 rounded-full border text-xs font-mono font-bold uppercase tracking-wider transition-all ${activeCategory === category
-                    ? 'bg-foreground text-background border-foreground shadow-lg shadow-foreground/10'
-                    : 'bg-secondary/30 text-muted-foreground border-border hover:text-foreground hover:border-accent/40'
-                    }`}
-                >
-                  {category === 'All' ? (lang === 'vi' ? 'Tất cả' : 'All') : category}
-                </button>
-              ))}
-            </div>
+            </motion.div>
+            <motion.p
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}
+              className="text-muted-foreground max-w-sm text-sm leading-relaxed md:text-right"
+            >
+              {lang === 'vi'
+                ? 'Ứng dụng mobile, giao diện web và giải pháp phần mềm mình đã xây dựng.'
+                : 'Mobile apps, web UIs and software solutions I have built.'}
+            </motion.p>
           </div>
 
-          <div className="space-y-8 md:space-y-10">
-            {filteredProjects.map((project, i) => {
-              const isReverse = i % 2 !== 0;
+          {/* Category Filters */}
+          <div className="flex flex-wrap items-center gap-2 mb-10">
+            {projectCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-all duration-300 ${
+                  activeCategory === cat
+                    ? 'bg-accent text-accent-foreground border-accent'
+                    : 'bg-background text-muted-foreground border-border/80 hover:border-accent/40 hover:text-foreground'
+                }`}
+              >
+                {cat === 'All' ? (lang === 'vi' ? 'Tất cả' : 'All') : cat}
+              </button>
+            ))}
+            <span className="ml-auto text-xs font-mono text-muted-foreground">
+              {String(filteredProjects.length).padStart(2, '0')} {lang === 'vi' ? 'dự án' : 'projects'}
+            </span>
+          </div>
 
+          {/* Bento Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {filteredProjects.map((project, idx) => {
+              const isFeatured = (project as typeof project & { featured?: boolean }).featured;
+              const isFirstFull = idx === 0;
               return (
-                <motion.section
+                <motion.div
                   key={project.id}
                   initial="hidden"
                   whileInView="visible"
-                  viewport={{ once: true, margin: '-80px' }}
+                  viewport={{ once: true, margin: '-40px' }}
                   variants={fadeInUp}
-                  custom={i}
-                  className="group grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 items-stretch rounded-[2rem] md:rounded-[2.5rem] bg-secondary/10 border border-border/70 overflow-hidden hover:shadow-2xl hover:shadow-accent/5 transition-all duration-500 p-4 md:p-5"
+                  custom={idx}
+                  className={`group relative overflow-hidden rounded-2xl border border-border/40 bg-card
+                    hover:border-accent/50 hover:shadow-xl hover:shadow-accent/5 transition-all duration-300
+                    ${isFirstFull ? 'lg:col-span-2' : 'col-span-1'}
+                  `}
                 >
-                  <div className={`relative min-h-[280px] lg:min-h-full aspect-[16/10] lg:aspect-auto overflow-hidden rounded-[1.5rem] md:rounded-[2rem] bg-secondary border border-border/50 ${isReverse ? 'lg:order-2' : 'lg:order-1'}`}>
-                    {project.demoUrl ? (
-                      <ProjectDemoEmbed
-                        url={project.demoUrl}
-                        title={project.title}
-                        className="w-full h-full object-cover grayscale-[15%] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-[1.02]"
-                      />
-                    ) : project.imageUrl ? (
-                      <img
-                        src={project.imageUrl}
-                        alt={project.title}
-                        className="w-full h-full object-cover grayscale-[15%] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-[1.03]"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-secondary/40">
-                        <ImageIcon className="w-12 h-12 text-muted-foreground/40" />
-                        <span className="text-xs font-mono text-muted-foreground">{project.category}</span>
-                      </div>
-                    )}
+                  {/* Number badge */}
+                  <span className="absolute top-4 left-4 z-10 font-mono text-[11px] font-bold text-accent/60">
+                    {String(idx + 1).padStart(2, '0')}
+                  </span>
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/10 to-transparent opacity-80" />
-                    <div className="absolute left-5 bottom-5 right-5 z-10">
-                      <div className="flex flex-wrap gap-2">
-                        {project.techStack.slice(0, 4).map(tech => (
-                          <span key={tech} className="px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-md border border-border/60 text-[11px] font-bold text-foreground">
-                            {tech}
-                          </span>
-                        ))}
+                  {/* Featured badge */}
+                  {isFeatured && (
+                    <span className="absolute top-4 right-4 z-10 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent/15 border border-accent/30 text-accent text-[10px] font-semibold">
+                      ★ Featured
+                    </span>
+                  )}
+
+                  <div className={`grid ${isFirstFull ? 'lg:grid-cols-[1.2fr_0.8fr]' : 'grid-cols-1'} gap-0 h-full`}>
+                    {/* Image */}
+                    <div className="aspect-[16/10] lg:aspect-auto min-h-[200px] bg-secondary/30 relative overflow-hidden flex items-center justify-center p-5 border-b lg:border-b-0 lg:border-r border-border/20">
+                      <div className="absolute inset-0 bg-gradient-to-tr from-accent/8 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <div className="w-full h-full relative rounded-xl overflow-hidden shadow-md border border-border/30 group-hover:scale-[1.02] transition-transform duration-500">
+                        {project.imageUrl ? (
+                          <img src={project.imageUrl} alt={project.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-secondary via-background to-accent/10 flex items-center justify-center">
+                            <Code2 className="w-10 h-10 text-accent/40" />
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="absolute top-5 right-5 flex gap-3 opacity-0 translate-y-3 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-20">
-                      {project.githubUrl && (
-                        <a href={project.githubUrl} target="_blank" rel="noreferrer" className="w-11 h-11 bg-background/90 backdrop-blur-md text-foreground rounded-full flex items-center justify-center hover:bg-accent hover:text-white transition-colors shadow-lg">
-                          <Github className="w-5 h-5" />
-                        </a>
-                      )}
-                      {project.demoUrl && (
-                        <a href={project.demoUrl} target="_blank" rel="noreferrer" className="w-11 h-11 bg-foreground text-background rounded-full flex items-center justify-center hover:bg-accent transition-colors shadow-lg">
-                          <ExternalLink className="w-5 h-5" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={`flex flex-col justify-center p-4 md:p-7 lg:p-8 ${isReverse ? 'lg:order-1' : 'lg:order-2'}`}>
-                    <div className="flex flex-wrap items-center gap-3 mb-5">
-                      <span className="px-3 py-1 bg-accent/10 text-accent text-xs font-mono font-bold uppercase rounded-full">
-                        {project.category}
-                      </span>
-                      <span className="text-xs font-mono text-muted-foreground">0{i + 1}</span>
-                      <span className="hidden sm:inline-flex h-px flex-1 bg-border" />
-                      <span className="text-xs font-mono text-muted-foreground">{project.role}</span>
-                    </div>
-
-                    <h3 className="text-3xl md:text-4xl lg:text-5xl font-black mb-5 tracking-[-0.04em] leading-tight group-hover:text-accent transition-colors">
-                      {project.title}
-                    </h3>
-
-                    <p className={`${typeScale.body} text-muted-foreground mb-6 max-w-2xl`}>
-                      {project.description}
-                    </p>
-
-                    <div className="grid md:grid-cols-3 gap-3 mb-6">
-                      {[
-                        { label: lang === 'vi' ? 'Vấn đề' : 'Problem', value: project.problem },
-                        { label: lang === 'vi' ? 'Giải pháp' : 'Solution', value: project.solution },
-                        { label: 'Impact', value: project.impact },
-                      ].map(item => (
-                        <div key={item.label} className="rounded-2xl border border-border/60 bg-background/70 p-4">
-                          <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-accent mb-2">{item.label}</p>
-                          <p className="text-xs md:text-sm leading-relaxed text-muted-foreground line-clamp-5">{item.value}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <ul className="space-y-2.5 mb-7">
-                      {project.highlights.slice(0, 3).map(item => (
-                        <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
-                          <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <div className="flex flex-wrap gap-2 mb-7">
-                      {project.techStack.map(tech => (
-                        <span key={tech} className="px-3 py-1.5 bg-secondary/70 text-foreground text-xs font-semibold rounded-md border border-border/40">
-                          {tech}
+                    {/* Info */}
+                    <div className="p-6 md:p-7 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-accent font-semibold mb-2 block">
+                          {project.category}
                         </span>
-                      ))}
-                    </div>
+                        <h3 className="font-bold text-xl mb-3 text-foreground tracking-tight group-hover:text-accent transition-colors duration-200">
+                          {project.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-5 line-clamp-3">
+                          {project.description}
+                        </p>
+                      </div>
 
-                    <div className="flex flex-wrap gap-3">
-                      {project.demoUrl && (
-                        <a href={project.demoUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-foreground text-background text-sm font-bold hover:bg-accent transition-colors">
-                          {lang === 'vi' ? 'Xem demo' : 'View demo'}
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
-                      {project.githubUrl && (
-                        <a href={project.githubUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-secondary text-foreground text-sm font-bold hover:bg-secondary/70 transition-colors border border-border/60">
-                          Source Code
-                          <Github className="w-4 h-4" />
-                        </a>
-                      )}
+                      <div>
+                        <div className="flex flex-wrap gap-1.5 mb-5">
+                          {project.techStack.map((tech) => (
+                            <span
+                              key={tech}
+                              className="px-2 py-1 text-[10px] font-semibold font-mono rounded-md bg-accent/8 text-accent border border-accent/15"
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          {project.demoUrl && (
+                            <a
+                              href={project.demoUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex-1 text-center py-2.5 rounded-xl bg-accent text-accent-foreground text-xs font-bold transition-all hover:opacity-90 hover:scale-[0.98] active:scale-[0.96] flex items-center justify-center gap-1.5"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" /> Live Demo
+                            </a>
+                          )}
+                          {project.githubUrl ? (
+                            <a
+                              href={project.githubUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-2.5 rounded-xl border border-border hover:border-accent/40 hover:bg-secondary transition-all text-muted-foreground hover:text-foreground"
+                            >
+                              <Github className="w-4 h-4" />
+                            </a>
+                          ) : (
+                            <div className="p-2.5 rounded-xl border border-border/20 text-muted-foreground/30 cursor-not-allowed">
+                              <Code2 className="w-4 h-4" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </motion.section>
+                </motion.div>
               );
             })}
           </div>
@@ -1299,26 +1449,28 @@ const Portfolio = () => {
     ),
 
     nowBuilding: (
-      <section key="nowBuilding" id="now-building" className="py-24 md:py-32 bg-secondary/10 border-y border-border/30 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-25 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+      <section key="nowBuilding" id="now-building" className="py-24 border-y border-border/50 bg-border/10 relative overflow-hidden">
         <div className="container-wide max-w-7xl relative z-10">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} className="relative rounded-[2rem] md:rounded-[2.75rem] border border-border bg-gradient-to-br from-background via-background to-secondary/40 p-6 md:p-10 lg:p-14 overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-80 h-80 bg-accent/10 rounded-full blur-[110px]" />
-            <div className="relative z-10 grid lg:grid-cols-[0.9fr_1.1fr] gap-10 lg:gap-14 items-center">
+          <motion.div
+            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}
+            className="relative rounded-2xl border border-border/40 bg-card p-6 md:p-10 lg:p-14 overflow-hidden"
+          >
+            <div className="absolute -top-24 -right-24 w-80 h-80 bg-accent/5 rounded-full blur-[110px]" />
+            <div className="relative z-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-10 lg:gap-14 items-center">
               <div>
-                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-mono font-semibold uppercase mb-6">
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[11px] font-mono font-semibold uppercase mb-6">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                   </span>
                   {data.nowBuilding.status}
                 </span>
-                <h2 className={`${typeScale.sectionTitle} mb-5`}>{data.nowBuilding.title}</h2>
-                <p className={`${typeScale.body} text-muted-foreground mb-7`}>{data.nowBuilding.description}</p>
+                <h2 className={`${sectionTitle} mb-5`}>{data.nowBuilding.title}</h2>
+                <p className={`${body} text-muted-foreground mb-7`}>{data.nowBuilding.description}</p>
 
                 <ul className="space-y-3 mb-8">
                   {data.nowBuilding.bullets.map(item => (
-                    <li key={item} className="flex items-start gap-3 text-sm md:text-base text-muted-foreground">
+                    <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
                       <Rocket className="w-4 h-4 text-accent shrink-0 mt-1" />
                       <span>{item}</span>
                     </li>
@@ -1327,27 +1479,27 @@ const Portfolio = () => {
 
                 <div className="flex flex-wrap gap-2 mb-8">
                   {data.nowBuilding.techStack.map(tech => (
-                    <span key={tech} className="px-3 py-1.5 bg-secondary/50 text-foreground text-xs font-semibold rounded-md border border-border/50">
+                    <span key={tech} className="px-2.5 py-1 text-[11px] font-semibold font-mono rounded-md bg-secondary text-foreground border border-border/40">
                       {tech}
                     </span>
                   ))}
                 </div>
 
-                <a href={data.nowBuilding.link} target="_blank" rel="noreferrer" className="inline-flex px-7 py-3.5 bg-foreground text-background rounded-2xl font-bold items-center gap-2 hover:bg-accent transition-colors shadow-xl shadow-foreground/10">
+                <a href={data.nowBuilding.link} target="_blank" rel="noreferrer" className="inline-flex px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold items-center gap-2 hover:bg-accent hover:text-accent-foreground transition-all hover:scale-[0.98] active:scale-[0.96]">
                   <Rocket className="w-4 h-4" /> {lang === 'vi' ? 'Xem live demo' : 'View live demo'}
                 </a>
               </div>
 
-              <div className="rounded-[1.75rem] border border-border bg-background shadow-2xl overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-secondary/40">
+              <div className="rounded-xl border border-border bg-zinc-950 shadow-2xl overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-900 bg-zinc-900/50">
                   <span className="w-2.5 h-2.5 rounded-full bg-red-400/70" />
                   <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/70" />
                   <span className="w-2.5 h-2.5 rounded-full bg-green-400/70" />
-                  <span className="ml-3 px-3 py-1 bg-background rounded-md text-[11px] font-mono text-muted-foreground border border-border/60 truncate">
+                  <span className="ml-3 px-3 py-1 bg-zinc-900 rounded-md text-[10px] font-mono text-zinc-500 border border-zinc-800/50 truncate">
                     {data.nowBuilding.link.replace('https://', '')}
                   </span>
                 </div>
-                <div className="aspect-[16/10] bg-secondary/30">
+                <div className="aspect-[16/10] bg-zinc-900/10">
                   <ProjectDemoEmbed url={data.nowBuilding.link} title={data.nowBuilding.title} className="w-full h-full object-cover" />
                 </div>
               </div>
@@ -1358,42 +1510,40 @@ const Portfolio = () => {
     ),
 
     experience: (
-      <section key="experience" id="experience" className="py-24 md:py-32 bg-background relative overflow-hidden">
+      <section key="experience" id="experience" className="py-24 bg-background relative overflow-hidden">
         <div className="container-wide max-w-6xl relative z-10">
-          <div className="max-w-3xl mb-16">
-            <span className={eyebrow}>
-              <Terminal className="w-4 h-4" /> {lang === 'vi' ? 'Kinh nghiệm' : 'Experience'}
-            </span>
-            <h2 className={`${typeScale.sectionTitle} mt-6 mb-5`}>
-              {lang === 'vi' ? 'Kinh nghiệm làm sản phẩm thực tế.' : 'Production product experience.'}
+          <div className="max-w-2xl mb-14">
+            <h2 className={sectionTitle}>
+              {lang === 'vi' ? 'Kinh nghiệm làm việc' : 'Professional Experience'}
             </h2>
-            <p className={`${typeScale.body} text-muted-foreground`}>
-              {lang === 'vi'
-                ? 'Phần này được viết chi tiết hơn để nhà tuyển dụng thấy rõ bạn đã làm gì, phối hợp ra sao và tạo giá trị như thế nào.'
-                : 'This section is written in detail so recruiters can quickly understand ownership, collaboration, and value delivered.'}
-            </p>
           </div>
 
-          <div className="space-y-10">
+          <div className="space-y-6">
             {experiences.map((exp, i) => (
-              <motion.div key={exp.id} initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-100px' }} variants={fadeInUp} custom={i} className="group grid md:grid-cols-[240px_1fr] gap-8 md:gap-12 items-start rounded-[2rem] border border-border/70 bg-secondary/10 p-6 md:p-8 lg:p-10">
-                <div className="md:text-right">
-                  <span className="inline-flex px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-mono font-bold uppercase mb-4">
-                    {exp.duration}
-                  </span>
-                  <h3 className="text-xl md:text-2xl font-black leading-tight mb-2">{exp.company}</h3>
-                  <p className="text-sm text-muted-foreground font-mono">{exp.role}</p>
-                </div>
+              <motion.div
+                key={exp.id}
+                initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-100px' }} variants={fadeInUp} custom={i}
+                className="group relative rounded-2xl border border-border/40 bg-card p-6 md:p-8 lg:p-10 hover:border-accent/30 transition-all duration-300"
+              >
+                <div className="grid md:grid-cols-[240px_1fr] gap-8 md:gap-12 items-start">
+                  <div>
+                    <span className="inline-flex px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-mono font-bold uppercase tracking-wider mb-4">
+                      {exp.duration}
+                    </span>
+                    <h3 className="text-lg font-bold leading-tight mb-2 text-foreground">{exp.company}</h3>
+                    <p className="text-sm text-muted-foreground font-mono">{exp.role}</p>
+                  </div>
 
-                <div>
-                  <p className={`${typeScale.body} text-muted-foreground mb-7`}>{exp.description}</p>
-                  <div className="grid md:grid-cols-2 gap-3">
-                    {exp.achievements.map((achievement, ai) => (
-                      <div key={achievement} className="flex items-start gap-3 rounded-2xl border border-border/50 bg-background/70 p-4">
-                        <Sparkles className="w-4 h-4 text-accent shrink-0 mt-1" />
-                        <span className="text-sm leading-relaxed text-muted-foreground">{achievement}</span>
-                      </div>
-                    ))}
+                  <div>
+                    <p className={`${body} text-muted-foreground mb-7`}>{exp.description}</p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {exp.achievements.map((achievement) => (
+                        <div key={achievement} className="flex items-start gap-3 rounded-xl border border-border/40 bg-background/50 p-4">
+                          <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                          <span className="text-sm leading-relaxed text-muted-foreground">{achievement}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -1404,28 +1554,28 @@ const Portfolio = () => {
     ),
 
     education: (
-      <section key="education" id="education" className="py-24 md:py-28 bg-secondary/10 border-y border-border/30">
-        <div className="container-wide max-w-6xl">
-          <div className="grid lg:grid-cols-[0.7fr_1.3fr] gap-8 lg:gap-12 items-start">
+      <section key="education" id="education" className="py-24 bg-background border-y border-border/40">
+        <div className="container-wide max-w-5xl">
+          <div className="grid lg:grid-cols-[0.7fr_1.3fr] gap-8 lg:gap-14 items-start">
             <div>
-              <span className={eyebrow}>
-                <GraduationCap className="w-4 h-4" /> {lang === 'vi' ? 'Học vấn' : 'Education'}
-              </span>
-              <h2 className={`${typeScale.sectionTitle} mt-6`}>
-                {lang === 'vi' ? 'Nền tảng học thuật' : 'Academic background'}
+              <h2 className={sectionTitle} style={{ lineHeight: 1.15 }}>
+                {lang === 'vi' ? 'Học vấn & Nền tảng' : 'Academic Background'}
               </h2>
             </div>
 
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} className="bg-background border border-border rounded-[2rem] p-6 md:p-9">
-              <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-                <div className="w-16 h-16 shrink-0 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
-                  <GraduationCap className="w-8 h-8" />
+            <motion.div
+              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}
+              className="rounded-2xl border border-border/40 bg-card p-6 md:p-8"
+            >
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                <div className="w-12 h-12 shrink-0 rounded-xl bg-accent/8 border border-accent/15 flex items-center justify-center text-accent">
+                  <GraduationCap className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-2">{data.education.school}</h3>
-                  <p className="text-muted-foreground font-bold mb-2">{data.education.degree}</p>
-                  <p className="text-sm font-mono text-accent mb-5">{data.education.duration}</p>
-                  <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{data.education.note}</p>
+                  <h3 className="text-xl font-bold tracking-tight text-foreground mb-1">{data.education.school}</h3>
+                  <p className="font-semibold text-foreground/80 mb-1">{data.education.degree}</p>
+                  <p className="text-[12px] font-mono text-accent mb-4">{data.education.duration}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{data.education.note}</p>
                 </div>
               </div>
             </motion.div>
@@ -1435,54 +1585,111 @@ const Portfolio = () => {
     ),
 
     philosophy: (
-      <section key="philosophy" id="philosophy" className="py-24 md:py-32 bg-background relative overflow-hidden">
-        <Quote className="absolute top-10 left-1/2 -translate-x-1/2 w-40 h-40 text-foreground/[0.04]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-accent/10 via-background to-background" />
-        <div className="container-wide max-w-5xl text-center relative z-10">
-          <motion.p initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} className="text-2xl md:text-4xl lg:text-5xl font-black leading-tight tracking-[-0.04em]">
-            “{data.philosophyQuote}”
-          </motion.p>
-          <div className="mt-10 h-1.5 w-24 bg-gradient-to-r from-primary to-accent mx-auto rounded-full" />
+      <section key="philosophy" id="philosophy" className="py-24 bg-background relative overflow-hidden">
+        <div className="container-wide max-w-4xl text-center relative z-10">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}>
+            <Quote className="w-10 h-10 text-accent/15 mx-auto mb-8 animate-pulse" />
+            <p className="text-2xl md:text-3xl font-extrabold leading-tight tracking-tight text-foreground">
+              "{data.philosophyQuote}"
+            </p>
+            <div className="mt-8 h-1 w-20 bg-accent mx-auto rounded-full" />
+            <p className="mt-6 text-sm font-mono text-muted-foreground">— {data.personal.fullName}</p>
+          </motion.div>
+        </div>
+      </section>
+    ),
+
+    testimonials: (
+      <section key="testimonials" id="testimonials" className="py-24 bg-background relative overflow-hidden border-t border-border/40">
+        <div className="container-wide max-w-7xl relative z-10">
+          <div className="max-w-2xl mb-14 text-left">
+            <h2 className={sectionTitle}>
+              {lang === 'vi' ? 'Đánh giá & Phản hồi' : 'Feedback & Testimonials'}
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {testimonials.map((t, i) => {
+              const initials = t.name.split(' ').map(n => n[0]).slice(0, 2).join('');
+              return (
+                <motion.div
+                  key={t.id}
+                  initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-50px' }} variants={fadeInUp} custom={i}
+                  className="group relative rounded-2xl border border-border/40 bg-card p-6 md:p-8 hover:border-accent/30 hover:shadow-lg transition-all duration-300 overflow-hidden"
+                >
+                  <div className="relative z-10">
+                    <div className="flex items-start gap-4 mb-5">
+                      {t.avatar ? (
+                        <img src={t.avatar} alt={t.name} className="w-12 h-12 rounded-xl object-cover border border-border shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-secondary border border-border flex items-center justify-center text-accent font-bold text-base shrink-0">
+                          {initials}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-base leading-tight text-foreground">{t.name}</h3>
+                        <p className="text-[12px] text-muted-foreground mt-0.5">{t.role} · <span className="text-accent">{t.company}</span></p>
+                      </div>
+                    </div>
+
+                    <blockquote>
+                      <p className="text-sm leading-relaxed text-muted-foreground italic line-clamp-3">"{t.text}"</p>
+                    </blockquote>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </section>
     ),
 
     contact: (
-      <section key="contact" id="contact" className="py-24 md:py-32 bg-gradient-to-br from-primary/5 via-background to-accent/5 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(#808080_1px,transparent_1px)] [background-size:18px_18px]" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[520px] h-[320px] bg-accent/10 rounded-full blur-[120px]" />
+      <section key="contact" id="contact" className="py-24 md:py-32 bg-border/10 relative overflow-hidden border-t border-border/40">
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#808080_1px,transparent_1px)] [background-size:20px_20px]" />
         <div className="container-wide max-w-4xl text-center relative z-10">
-          <span className={eyebrow}>{lang === 'vi' ? 'Liên hệ' : 'Get in touch'}</span>
-          <h2 className={`${typeScale.sectionTitle} mt-6 mb-6`}>{data.contact.title}</h2>
-          <p className={`${typeScale.lead} text-muted-foreground mb-12 max-w-2xl mx-auto`}>
+          <h2 className={`${sectionTitle} mb-5`} style={{ lineHeight: 1.15 }}>
+            {data.contact.title}
+          </h2>
+          <p className={`${body} text-muted-foreground mb-12 max-w-2xl mx-auto text-sm md:text-base`}>
             {data.contact.description}
           </p>
 
-          <div className="grid sm:grid-cols-3 gap-4 mb-10 text-left">
+          <div className="grid sm:grid-cols-3 gap-4 mb-12 text-left">
             {[
-              { icon: Mail, label: 'Email', value: data.personal.email, href: `mailto:${data.personal.email}` },
-              { icon: Phone, label: lang === 'vi' ? 'Điện thoại' : 'Phone', value: data.personal.phone, href: `tel:${data.personal.phone.replace(/\s/g, '')}` },
-              { icon: Github, label: 'GitHub', value: data.personal.github, href: `https://${data.personal.github}` },
+              { icon: Mail, label: 'Email', value: resolvedEmail, href: `mailto:${resolvedEmail}` },
+              { icon: Phone, label: lang === 'vi' ? 'Điện thoại' : 'Phone', value: resolvedPhone, href: `tel:${resolvedPhone.replace(/\s/g, '')}` },
+              { icon: Github, label: 'GitHub', value: resolvedGithub, href: `https://${resolvedGithub}` },
             ].map(item => {
               const Icon = item.icon;
               return (
-                <a key={item.label} href={item.href} target={item.label === 'GitHub' ? '_blank' : undefined} rel={item.label === 'GitHub' ? 'noreferrer' : undefined} className="group rounded-2xl border border-border/60 bg-background/70 p-5 hover:border-accent/40 hover:bg-secondary/30 transition-all">
-                  <div className="w-11 h-11 rounded-2xl bg-secondary border border-border flex items-center justify-center text-accent mb-4 group-hover:scale-110 transition-transform">
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target={item.label === 'GitHub' ? '_blank' : undefined}
+                  rel={item.label === 'GitHub' ? 'noreferrer' : undefined}
+                  className="group relative flex flex-col p-6 rounded-2xl border border-border/40 bg-card hover:border-accent/30 hover:shadow-lg transition-all duration-300"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-accent mb-4 group-hover:scale-110 transition-transform duration-300">
                     <Icon className="w-5 h-5" />
                   </div>
-                  <p className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">{item.label}</p>
-                  <p className="text-sm font-bold text-foreground break-all">{item.value}</p>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-1">{item.label}</span>
+                  <span className="text-sm font-bold text-foreground break-all">{item.value}</span>
                 </a>
               );
             })}
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a href={`mailto:${data.personal.email}`} className="px-8 py-4 bg-foreground text-background rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-accent transition-colors shadow-xl shadow-foreground/10">
-              <Mail className="w-5 h-5" /> {lang === 'vi' ? 'Gửi email' : 'Send email'}
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <a href={`mailto:${resolvedEmail}`}
+              className="px-7 py-3.5 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-accent hover:text-accent-foreground transition-all hover:scale-[0.98] active:scale-[0.96]">
+              <Mail className="w-4.5 h-4.5" />
+              {lang === 'vi' ? 'Gửi email' : 'Send email'}
             </a>
-            <a href={`https://${data.personal.github}`} target="_blank" rel="noreferrer" className="px-8 py-4 border border-border bg-background/70 backdrop-blur-sm hover:border-accent/50 hover:bg-secondary/50 text-foreground rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors">
-              <Github className="w-5 h-5" /> GitHub
+            <a href={`https://${resolvedGithub}`} target="_blank" rel="noreferrer"
+              className="px-7 py-3.5 border border-border bg-card hover:border-accent/40 hover:bg-secondary/40 text-foreground rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:scale-[0.98] active:scale-[0.96]">
+              <Github className="w-4.5 h-4.5" />
+              GitHub
             </a>
           </div>
         </div>
@@ -1493,8 +1700,12 @@ const Portfolio = () => {
   const alwaysShownSections = ['about', 'services', 'aiWorkflow', 'nowBuilding', 'education', 'philosophy', 'contact'];
 
   return (
-    <div className="min-h-screen bg-background selection:bg-accent selection:text-white font-sans text-foreground overflow-x-hidden">
-      <motion.div className="fixed top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary to-accent z-[100] origin-left shadow-md" style={{ scaleX }} />
+    <div className="min-h-screen bg-background selection:bg-accent/20 selection:text-accent font-sans text-foreground overflow-x-hidden antialiased">
+      {/* Scroll progress bar */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-primary via-accent to-primary z-[100] origin-left"
+        style={{ scaleX }}
+      />
 
       <Header />
 
@@ -1502,16 +1713,20 @@ const Portfolio = () => {
         {visibleSections.includes('hero') && sectionMap.hero}
 
         {visibleSections.includes('hero') && (
-          <section className="border-y border-border bg-secondary/10 relative z-10 backdrop-blur-sm">
+          <section className="border-y border-border/40 bg-secondary/10 relative z-10">
             <div className="container-wide py-8 md:py-10">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border/40 rounded-2xl overflow-hidden border border-border/40">
                 {data.metrics.map((metric, i) => (
-                  <motion.div key={metric.label} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} custom={i} className="rounded-2xl border border-border/60 bg-background/70 p-5 text-center">
-                    <span className="block text-3xl md:text-5xl font-black tracking-tighter mb-2 text-transparent bg-clip-text bg-gradient-to-br from-foreground to-foreground/50">
+                  <motion.div
+                    key={metric.label}
+                    initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} custom={i}
+                    className="bg-background p-6 text-center hover:bg-secondary/20 transition-all duration-300"
+                  >
+                    <span className="block text-3xl md:text-4xl font-extrabold tracking-tight mb-2 text-foreground">
                       {metric.value}
                     </span>
-                    <span className="block text-xs md:text-sm font-mono text-foreground uppercase tracking-widest mb-2">{metric.label}</span>
-                    <span className="block text-[11px] md:text-xs text-muted-foreground leading-relaxed">{metric.helper}</span>
+                    <span className="block text-[10px] font-mono text-accent uppercase tracking-widest mb-1.5">{metric.label}</span>
+                    <span className="block text-xs text-muted-foreground leading-relaxed">{metric.helper}</span>
                   </motion.div>
                 ))}
               </div>
@@ -1526,18 +1741,44 @@ const Portfolio = () => {
         {visibleSections.includes('projects') && sectionMap.projects}
         {sectionMap.nowBuilding}
         {visibleSections.includes('experience') && sectionMap.experience}
+        {visibleSections.includes('testimonials') && sectionMap.testimonials}
         {sectionMap.education}
         {sectionMap.philosophy}
         {sectionMap.contact}
 
         {visibleSections
-          .filter(k => !['hero', 'skills', 'projects', 'experience', ...alwaysShownSections].includes(k))
+          .filter(k => !['hero', 'skills', 'projects', 'experience', 'testimonials', ...alwaysShownSections].includes(k))
           .map(key => (
             <div key={key}>{sectionMap[key] || null}</div>
           ))}
       </main>
 
+      {/* Floating Theme Switcher */}
+      <div className="fixed right-6 bottom-24 z-50 flex flex-col gap-3 bg-card/85 border border-border/50 p-2.5 rounded-2xl backdrop-blur-md shadow-lg">
+        {themes.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTheme(t.id)}
+            title={`Theme: ${t.name}`}
+            className={`w-7 h-7 rounded-full border-2 transition-all duration-300 cursor-pointer ${
+              themeClasses[t.id].color
+            } ${
+              theme === t.id
+                ? themeClasses[t.id].active
+                : `border-transparent scale-95 opacity-85 hover:opacity-100 ${themeClasses[t.id].hover}`
+            }`}
+          />
+        ))}
+      </div>
+
       <Footer />
+
+      {/* Booking Modal */}
+      <BookingModal
+        service={bookingService}
+        open={bookingOpen}
+        onClose={() => { setBookingOpen(false); setBookingService(null); }}
+      />
     </div>
   );
 };

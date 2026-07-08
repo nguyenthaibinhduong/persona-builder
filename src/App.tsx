@@ -17,6 +17,13 @@ import AdminProjects from "./pages/admin/AdminProjects.tsx";
 import AdminExperience from "./pages/admin/AdminExperience.tsx";
 import AdminSkills from "./pages/admin/AdminSkills.tsx";
 import AdminTestimonials from "./pages/admin/AdminTestimonials.tsx";
+import AdminLogin from "./pages/admin/AdminLogin.tsx";
+import AdminBlog from "./pages/admin/AdminBlog.tsx";
+import AdminServices from "./pages/admin/AdminServices.tsx";
+import AdminPayments from "./pages/admin/AdminPayments.tsx";
+import AdminUsers from "./pages/admin/AdminUsers.tsx";
+import OrderConfirmation from "./pages/OrderConfirmation.tsx";
+import MyOrders from "./pages/MyOrders.tsx";
 
 const queryClient = new QueryClient();
 
@@ -33,10 +40,17 @@ const App = () => (
                 <Route path="/work" element={<Index />} />
                 <Route path="/" element={<Portfolio />} />
                 <Route path="/cv-builder" element={<CVBuilder />} />
+                <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                <Route path="/my-orders" element={<MyOrders />} />
+                <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/adminabc" element={<AdminLayout />}>
                   <Route index element={<AdminDashboard />} />
                   <Route path="sections" element={<AdminSections />} />
                   <Route path="projects" element={<AdminProjects />} />
+                  <Route path="blog" element={<AdminBlog />} />
+                  <Route path="services" element={<AdminServices />} />
+                  <Route path="payments" element={<AdminPayments />} />
+                  <Route path="users" element={<AdminUsers />} />
                   <Route path="experience" element={<AdminExperience />} />
                   <Route path="skills" element={<AdminSkills />} />
                   <Route path="testimonials" element={<AdminTestimonials />} />
