@@ -17,6 +17,7 @@ const translations: Record<Language, Record<string, string>> = {
     "nav.work": "Work",
     'nav.portfolio': 'Portfolio',
     'nav.cv_builder': 'CV Builder',
+    'nav.my_orders': 'Orders',
     'nav.about': 'About',
     'nav.contact': 'Contact',
     // Landing
@@ -136,6 +137,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.work': 'Công việc',
     'nav.portfolio': 'Portfolio',
     'nav.cv_builder': 'Tạo CV',
+    'nav.my_orders': 'Đơn hàng',
     'nav.about': 'Giới thiệu',
     'nav.contact': 'Liên hệ',
     'landing.hero.title': 'Thiết kế website nhanh – đẹp – tối ưu hiệu năng',

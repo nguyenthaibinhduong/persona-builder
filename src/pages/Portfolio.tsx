@@ -30,6 +30,15 @@ import {
   Calendar,
   CheckCircle,
   ShoppingCart,
+  Smartphone,
+  Palette,
+  Network,
+  FileText,
+  Gauge,
+  LayoutGrid,
+  MessageSquare,
+  Key,
+  CheckSquare,
 } from 'lucide-react';
 import { useState, useMemo, ReactNode, useEffect } from 'react';
 
@@ -227,7 +236,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
         description: 'Tập trung trải nghiệm mobile/tablet, xử lý nhiều trạng thái và dữ liệu thực tế.',
         skills: [
           { name: 'React Native' },
-          { name: 'NativeWind' },
+          { name: 'Tailwind Css' },
           { name: 'Redux Toolkit' },
           { name: 'REST API' },
           { name: 'Form Flow' },
@@ -315,7 +324,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
           'Tổ chức component dùng lại cho card, list, filter, document, notification và empty state.',
           'Tích hợp API cho luồng dữ liệu lịch họp, tài liệu, ý kiến, thông báo và thư viện cá nhân.',
         ],
-        techStack: ['React Native', 'TypeScript', 'Redux Toolkit', 'REST API', 'NativeWind'],
+        techStack: ['React Native', 'TypeScript', 'Redux Toolkit', 'REST API', 'Tailwind Css'],
         imageUrl: '/images/hdnd-so.png',
       },
       {
@@ -403,7 +412,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
           'Tối ưu layout cho mobile nhỏ và tablet.',
           'Dễ tái sử dụng trong nhiều module nghiệp vụ.',
         ],
-        techStack: ['React Native', 'TypeScript', 'NativeWind', 'Redux Toolkit'],
+        techStack: ['React Native', 'TypeScript', 'Tailwind Css', 'Redux Toolkit'],
         imageUrl: '/images/reuse.png',
       },
     ],
@@ -531,7 +540,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
         description: 'Mobile/tablet experience, complex data states, and real product flows.',
         skills: [
           { name: 'React Native' },
-          { name: 'NativeWind' },
+          { name: 'Tailwind Css' },
           { name: 'Redux Toolkit' },
           { name: 'REST API' },
           { name: 'Form Flow' },
@@ -619,7 +628,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
           'Created reusable patterns for cards, lists, filters, documents, notifications, and empty states.',
           'Integrated API flows for meetings, documents, polling, notifications, and personal library features.',
         ],
-        techStack: ['React Native', 'TypeScript', 'Redux Toolkit', 'REST API', 'NativeWind'],
+        techStack: ['React Native', 'TypeScript', 'Redux Toolkit', 'REST API', 'Tailwind Css'],
         imageUrl: '/images/hdnd-so.png',
       },
       {
@@ -706,7 +715,7 @@ const portfolioContent: Record<Lang, PortfolioContent> = {
           'Optimized layouts for small phones and tablets.',
           'Reusable across multiple business modules.',
         ],
-        techStack: ['React Native', 'TypeScript', 'NativeWind', 'Redux Toolkit'],
+        techStack: ['React Native', 'TypeScript', 'Tailwind Css', 'Redux Toolkit'],
         imageUrl: '/images/reuse.png',
       },
     ],
@@ -800,11 +809,10 @@ const eyebrow =
 
 const Portfolio = () => {
   const { sectionTitle, body, lead } = typeScale;
-  const { language } = useLanguage() as { t: (key: string) => string; language?: Lang };
+  const { lang, setLang } = useLanguage();
   const { sections, testimonials } = useAdmin();
   const { profile, projects: dbProjects, services: dbServices } = usePortfolioData();
 
-  const lang: Lang = language === 'en' ? 'en' : 'vi';
   const data = portfolioContent[lang];
 
   // Merge Supabase data with hardcode fallback
@@ -855,6 +863,16 @@ const Portfolio = () => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('portfolio-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (lang === 'vi') {
+      document.documentElement.style.setProperty('--heading-font', "'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, sans-serif");
+      document.documentElement.style.setProperty('--body-font', "'Be Vietnam Pro', 'Inter', system-ui, sans-serif");
+    } else {
+      document.documentElement.style.setProperty('--heading-font', "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif");
+      document.documentElement.style.setProperty('--body-font', "'Inter', system-ui, -apple-system, sans-serif");
+    }
+  }, [lang]);
 
   const themes = [
     { id: 'cyber', name: 'Teal' },
@@ -909,139 +927,399 @@ const Portfolio = () => {
   const serviceIcons = [Layers, Code2, Cpu, Sparkles];
   const skillIcons = [Code2, Phone, Layers, GitBranch, Wand2];
 
-  const codeLines = [
-    { key: 'const', text: 'const frontendDeveloper = {' },
-    { key: 'name', text: `  name: "${data.personal.fullName}",` },
-    { key: 'role', text: `  role: "${data.personal.title}",` },
-    { key: 'focus', text: '  focus: ["UX", "Responsive", "Clean Components"],' },
-    { key: 'stack', text: '  stack: ["React", "TypeScript", "React Native"],' },
-    { key: 'mindset', text: lang === 'vi' ? '  mindset: "ship UI như sản phẩm thật",' : '  mindset: "ship UI like a real product",' },
-    { key: 'status', text: lang === 'vi' ? '  status: "open for frontend work 🚀",' : '  status: "open for frontend work 🚀",' },
-    { key: 'close', text: '}' },
-  ];
+  const icon = (src: string, alt: string, inline: boolean = true) => (
+    <img
+      src={src}
+      alt={alt}
+      width={inline ? 18 : 20}
+      height={inline ? 18 : 20}
+      loading="lazy"
+      className={inline ? "mr-2 inline-block object-contain" : "object-contain w-5 h-5"}
+    />
+  );
 
-  const renderCodeLine = (line: { key: string; text: string }) => {
-    if (line.key === 'const') {
-      return (
-        <>
-          <span className="text-purple-400">const </span>
-          <span className="text-blue-300">frontendDeveloper</span>
-          <span className="text-zinc-500"> = &#123;</span>
-        </>
+  const lucideIcon = (IconComponent: any, color: string = "text-accent", inline: boolean = true) => (
+    <IconComponent className={inline ? `w-[18px] h-[18px] mr-2 inline-block object-contain ${color}` : `w-5 h-5 object-contain ${color}`} />
+  );
+
+  const getSkillIcon = (name: string, inline: boolean = true) => {
+    const n = name.toLowerCase();
+
+    // 1. BRANDED LOGOS (Simple Icons / Devicon / NPM Mirror)
+    if (n.includes("react native"))
+      return icon("https://cdn.simpleicons.org/react", name, inline);
+
+    if (n.includes("react"))
+      return icon("https://cdn.simpleicons.org/react", name, inline);
+
+    if (n.includes("node"))
+      return icon("https://cdn.simpleicons.org/nodedotjs", name, inline);
+
+    if (n.includes("typescript"))
+      return icon("https://cdn.simpleicons.org/typescript", name, inline);
+
+    if (n.includes("javascript") || n.includes("js"))
+      return icon("https://cdn.simpleicons.org/javascript", name, inline);
+
+    if (n.includes("next"))
+      return icon("https://cdn.simpleicons.org/nextdotjs", name, inline);
+
+    if (n.includes("redux"))
+      return icon("https://cdn.simpleicons.org/redux", name, inline);
+
+    if (n.includes("tailwind"))
+      return icon("https://cdn.simpleicons.org/tailwindcss", name, inline);
+
+    if (n.includes("git") && !n.includes("github"))
+      return icon("https://cdn.simpleicons.org/git", name, inline);
+
+    if (n.includes("github"))
+      return icon("https://cdn.simpleicons.org/github", name, inline);
+
+    if (n.includes("docker"))
+      return icon("https://cdn.simpleicons.org/docker", name, inline);
+
+    if (n.includes("firebase"))
+      return icon("https://cdn.simpleicons.org/firebase", name, inline);
+
+    if (n.includes("supabase"))
+      return icon("https://cdn.simpleicons.org/supabase", name, inline);
+
+    if (n.includes("mysql"))
+      return icon("https://cdn.simpleicons.org/mysql", name, inline);
+
+    if (n.includes("postgresql") || n.includes("postgres"))
+      return icon("https://cdn.simpleicons.org/postgresql", name, inline);
+
+    if (n.includes("mongodb"))
+      return icon("https://cdn.simpleicons.org/mongodb", name, inline);
+
+    if (n.includes("express"))
+      return icon("https://cdn.simpleicons.org/express", name, inline);
+
+    if (n.includes("nest"))
+      return icon("https://cdn.simpleicons.org/nestjs", name, inline);
+
+    if (n.includes("php"))
+      return icon("https://cdn.simpleicons.org/php", name, inline);
+
+    if (n.includes("figma"))
+      return icon("https://cdn.simpleicons.org/figma", name, inline);
+
+    if (n.includes("html"))
+      return icon("https://cdn.simpleicons.org/html5", name, inline);
+
+    if (n.includes("css"))
+      return icon("https://cdn.simpleicons.org/css", name, inline);
+
+    if (n.includes("chatgpt") || n.includes("openai"))
+      return icon("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/openai.png", name, inline);
+
+    if (n.includes("claude"))
+      return icon("https://cdn.simpleicons.org/anthropic", name, inline);
+
+    if (n.includes("gemini"))
+      return icon("https://cdn.simpleicons.org/googlegemini", name, inline);
+
+    if (n.includes("copilot"))
+      return icon("https://cdn.simpleicons.org/githubcopilot", name, inline);
+
+    if (n.includes("cursor"))
+      return icon(
+        "https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/cursor.png",
+        name,
+        inline
       );
-    }
-    if (line.key === 'close') {
-      return <span className="text-zinc-500">&#125;</span>;
-    }
-    const parts = line.text.split(':');
-    if (parts.length < 2) return <span>{line.text}</span>;
-    const keyPart = parts[0];
-    const valuePart = parts.slice(1).join(':');
-    return (
-      <>
-        <span className="text-sky-300">{keyPart}</span>
-        <span className="text-zinc-500">: </span>
-        {valuePart.includes('[') ? (
-          <span className="text-amber-300">{valuePart}</span>
-        ) : (
-          <span className="text-emerald-300">{valuePart}</span>
-        )}
-      </>
-    );
+
+    if (n.includes("vscode") || n.includes("vs code"))
+      return icon("https://img.icons8.com/?size=100&id=9OGIyU8hrxW5&format=png&color=000000", name, inline);
+
+    if (n.includes("vercel"))
+      return icon("https://cdn.simpleicons.org/vercel", name, inline);
+
+    if (n.includes("postman"))
+      return icon("https://cdn.simpleicons.org/postman", name, inline);
+
+    // 2. CONCEPTUAL LOGOS (Lucide Icons)
+    if (n.includes("mobile-first") || n.includes("mobile"))
+      return lucideIcon(Smartphone, "text-sky-400", inline);
+
+    if (n.includes("design system") || n.includes("ui/ux") || n.includes("ux"))
+      return lucideIcon(Palette, "text-rose-400", inline);
+
+    if (n.includes("micro-interaction") || n.includes("sparkles") || n.includes("reusable components"))
+      return lucideIcon(Sparkles, "text-amber-400", inline);
+
+    if (n.includes("rest api") || n.includes("api"))
+      return lucideIcon(Network, "text-teal-400", inline);
+
+    if (n.includes("form flow"))
+      return lucideIcon(FileText, "text-blue-400", inline);
+
+    if (n.includes("list performance") || n.includes("performance") || n.includes("responsive design"))
+      return lucideIcon(Gauge, "text-emerald-400", inline);
+
+    if (n.includes("agile") || n.includes("scrum"))
+      return lucideIcon(LayoutGrid, "text-purple-400", inline);
+
+    if (n.includes("prompt") || n.includes("prompting"))
+      return lucideIcon(MessageSquare, "text-pink-400", inline);
+
+    if (n.includes("code review"))
+      return lucideIcon(CheckSquare, "text-cyan-400", inline);
+
+    if (n.includes("auth") || n.includes("jwt"))
+      return lucideIcon(Key, "text-amber-400", inline);
+
+    // Default Fallback
+    return icon("https://cdn.simpleicons.org/codeium", name, inline);
   };
 
   const sectionMap: Record<string, ReactNode> = {
     hero: (
-      <section key="hero" className="relative min-h-[100dvh] flex items-center pt-20 lg:pt-24 pb-16 lg:pb-20 overflow-hidden">
+      <section key="hero" className="relative min-h-[100dvh] flex items-center pt-24 pb-16 overflow-hidden">
+        {/* Background Grid and Radial Gradient */}
         <div className="absolute inset-0 -z-10 bg-background" />
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(20,184,166,0.08),transparent_35%),radial-gradient(circle_at_80%_30%,rgba(6,182,212,0.08),transparent_30%)]" />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(20,184,166,0.04),transparent_35%),radial-gradient(circle_at_80%_80%,rgba(20,184,166,0.04),transparent_35%)]" />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:30px_30px]" />
+
+        {/* Floating Particles Canvas/Effect */}
+        <div className="absolute inset-0 -z-5 overflow-hidden pointer-events-none opacity-40">
+          <div className="absolute top-[15%] left-[10%] w-72 h-72 rounded-full bg-accent/5 blur-[80px] animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-[20%] right-[15%] w-96 h-96 rounded-full bg-primary/5 blur-[100px] animate-pulse" style={{ animationDuration: '12s' }} />
+        </div>
 
         <div className="container-wide w-full relative z-10">
-          <div className="grid lg:grid-cols-[1.25fr_0.75fr] gap-12 lg:gap-20 items-center">
-            <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="max-w-3xl text-left">
-              <motion.div variants={fadeInUp} className="mb-6">
-                <span className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/50 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
-                  <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
-                  {data.hero.availability}
-                </span>
-              </motion.div>
-
-              <motion.div variants={fadeInUp} className="flex items-center gap-4 mb-6">
-                <img
-                  src="/images/avatar.png"
-                  alt={data.personal.fullName}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-accent shadow-md shadow-accent/10"
-                />
-                <div>
-                  <h1 className="text-xl font-bold text-foreground leading-none">
-                    {data.personal.fullName}
-                  </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {data.personal.title}
-                  </p>
-                </div>
-              </motion.div>
-
-              <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl lg:text-[3.25rem] font-extrabold leading-[1.1] tracking-tight mb-5">
-                {data.hero.headline}
-              </motion.h2>
-
-              <motion.p variants={fadeInUp} className="text-sm md:text-base leading-relaxed text-muted-foreground mb-8 max-w-xl">
-                {lang === 'vi' 
-                  ? "Chuyên phát triển Web/Mobile với React, Next.js và React Native. Tập trung vào hiệu năng, thiết kế sạch và trải nghiệm người dùng mượt mà."
-                  : "Specializing in Web/Mobile dev with React, Next.js and React Native. Focused on performance, clean design, and smooth UX."}
-              </motion.p>
-
-              <motion.div variants={fadeInUp} className="flex items-center gap-4">
-                <a
-                  href="#projects"
-                  className="group inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-6 py-3 text-sm font-semibold transition-all hover:bg-accent hover:text-accent-foreground hover:scale-[0.98] active:scale-[0.96]"
-                >
-                  {data.hero.primaryCta}
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </a>
-                <a
-                  href="#contact"
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-6 py-3 text-sm font-semibold text-foreground transition-all hover:bg-secondary hover:scale-[0.98] active:scale-[0.96]"
-                >
-                  {data.hero.secondaryCta}
-                </a>
-              </motion.div>
-            </motion.div>
-
-            {/* Right: Code Console Mockup */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            {/* 1. HERO PROFILE CARD (Occupies 2 columns, split internally 50/50) */}
             <motion.div
-              initial={{ opacity: 0, y: 24, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-              className="relative hidden lg:block"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="group relative rounded-2xl border-2 border-accent/40 bg-card p-6 md:p-8 flex flex-col justify-between overflow-hidden shadow-lg shadow-accent/5 md:col-span-2 lg:col-span-2"
             >
-              <div className="absolute -inset-6 rounded-[2rem] bg-gradient-to-tr from-accent/10 via-emerald-500/10 to-transparent blur-2xl" />
-              <div className="relative rounded-2xl border border-border/80 bg-zinc-900 shadow-2xl overflow-hidden font-mono text-sm leading-relaxed">
-                {/* Terminal Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-zinc-950 border-b border-zinc-800">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
-                    <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-                    <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
-                  </div>
-                  <span className="text-xs text-zinc-500 font-sans">Developer.ts</span>
-                  <div className="w-12" />
-                </div>
-                {/* Terminal Body */}
-                <div className="p-5 text-left text-zinc-300">
-                  {codeLines.map((line, idx) => (
-                    <div key={line.key} className="flex">
-                      <span className="w-6 text-zinc-600 select-none text-right pr-3">{idx + 1}</span>
-                      <span className="flex-1 whitespace-pre">
-                        {renderCodeLine(line)}
-                      </span>
+              {/* Highlight background glow */}
+              <div className="absolute -inset-24 rounded-[3rem] bg-gradient-to-tr from-accent/10 via-emerald-500/5 to-transparent blur-3xl pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch relative z-10 w-full">
+                {/* Left Side: Profile info */}
+                <div className="flex flex-col justify-between h-full">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background/50 px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-6">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                      {data.hero.availability}
+                    </span>
+
+                    <div className="mb-5">
+                      <h1 className="text-2xl font-extrabold text-foreground tracking-tight leading-none">{resolvedName}</h1>
+                      <p className="text-xs text-accent font-semibold mt-2 font-mono uppercase tracking-wider">{resolvedTitle}</p>
                     </div>
-                  ))}
+
+                    <h2 className="text-xl md:text-2xl font-black tracking-tight leading-tight mb-3">
+                      {lang === 'vi' 
+                        ? <>Xây dựng <span className="text-accent">sản phẩm số</span> hiệu năng cao</>
+                        : <>Building high-performance <span className="text-accent">digital products</span></>}
+                    </h2>
+
+                    <p className="text-[11px] md:text-xs leading-relaxed text-muted-foreground line-clamp-4">
+                      {resolvedSummary}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-6 pt-4 border-t border-border/40">
+                    <a
+                      href="#projects"
+                      className="flex-1 text-center py-2.5 rounded-xl bg-accent text-accent-foreground text-xs font-bold transition-all hover:opacity-90 hover:scale-[0.98] active:scale-[0.96]"
+                    >
+                      {data.hero.primaryCta}
+                    </a>
+                    <a
+                      href="#contact"
+                      className="flex-1 text-center py-2.5 rounded-xl border border-border bg-background text-foreground text-xs font-semibold hover:bg-secondary transition-all hover:scale-[0.98] active:scale-[0.96]"
+                    >
+                      {data.hero.secondaryCta}
+                    </a>
+                  </div>
+                </div>
+
+                {/* Right Side: Large Avatar Image with same proportion */}
+                <div className="relative rounded-xl border border-border/30 bg-secondary/20 overflow-hidden flex items-center justify-center min-h-[220px] md:min-h-[260px] shadow-inner group">
+                  <img
+                    src="/images/avatar.png"
+                    alt={resolvedName}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                  />
+                  {/* Subtle decorative bottom glow overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent pointer-events-none" />
                 </div>
               </div>
             </motion.div>
+
+            {/* 3. RECENT WORK */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="group relative rounded-2xl border border-border/60 bg-card p-6 flex flex-col justify-between overflow-hidden shadow-sm hover:border-accent/40 hover:shadow-accent/5 transition-all duration-300"
+            >
+              {/* Highlight background */}
+              <div className="absolute -right-12 -top-12 w-36 h-36 bg-accent/5 rounded-full blur-2xl" />
+
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-accent font-bold">Recent Work</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">SaaS Web App</span>
+                </div>
+
+                <h3 className="text-lg font-bold text-foreground mb-2 group-hover:text-accent transition-colors duration-200">
+                  CodeSync Chat
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 mb-4">
+                  {lang === 'vi'
+                    ? 'Nền tảng cộng tác và chat realtime dành cho đội ngũ lập trình viên, tích hợp ngữ cảnh kỹ thuật.'
+                    : 'Real-time collaboration and messaging platform designed for developers, integrating code contexts.'}
+                </p>
+
+                {/* Styled Image Preview */}
+                <div className="aspect-[16/10] rounded-xl overflow-hidden border border-border/40 shadow-sm bg-secondary/20 relative group-hover:scale-[1.01] transition-all duration-300">
+                  <img
+                    src="/images/codesync.png"
+                    alt="CodeSync mockup"
+                    className="w-full h-full object-cover object-top"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/40 to-transparent" />
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <a
+                  href="#projects"
+                  className="w-full py-2 px-4 rounded-xl bg-secondary hover:bg-accent hover:text-accent-foreground text-xs font-semibold transition-all duration-200 inline-flex items-center justify-center gap-1.5"
+                >
+                  {lang === 'vi' ? 'Xem dự án' : 'View Project'} <ArrowRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </motion.div>
+
+            {/* 4. CORE SKILLS CARD */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="group relative rounded-2xl border border-border/60 bg-card p-6 shadow-sm hover:border-accent/40 hover:shadow-accent/5 transition-all duration-300"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-accent font-bold">Core Skills</span>
+                <span className="text-[10px] font-mono text-muted-foreground">Expertise</span>
+              </div>
+
+              {/* Skills Grid matching design */}
+              <div className="grid grid-cols-4 gap-4">
+                {[
+                  { name: 'React', icon: '⚛️', color: 'text-sky-400 bg-sky-400/5 border-sky-400/20' },
+                  { name: 'Node.js', icon: '🟢', color: 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' },
+                  { name: 'TypeScript', icon: '🟦', color: 'text-blue-400 bg-blue-400/5 border-blue-400/20' },
+                  { name: 'JS ES6+', icon: '🟡', color: 'text-yellow-400 bg-yellow-400/5 border-yellow-400/20' },
+                  { name: 'NextJS', icon: '▲', color: 'text-foreground bg-foreground/5 border-border' },
+                  { name: 'Redux', icon: '💜', color: 'text-purple-400 bg-purple-400/5 border-purple-400/20' },
+                  { name: 'Tailwind', icon: '🎨', color: 'text-teal-400 bg-teal-400/5 border-teal-400/20' },
+                  { name: 'Git', icon: '🐙', color: 'text-orange-400 bg-orange-400/5 border-orange-400/20' },
+                ].map((sk) => (
+                  <div key={sk.name} className="flex flex-col items-center text-center">
+                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center mb-1.5 ${sk.color} group-hover:scale-105 transition-transform duration-300 shadow-sm overflow-hidden p-2 bg-secondary/20`}>
+                      {getSkillIcon(sk.name, false)}
+                    </div>
+                    <span className="text-[10px] font-medium text-muted-foreground font-mono truncate max-w-full">{sk.name}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* 5. TECH STACK CARD */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="group relative rounded-2xl border border-border/60 bg-card p-6 shadow-sm hover:border-accent/40 hover:shadow-accent/5 transition-all duration-300"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-accent font-bold">Tech Stack</span>
+                <span className="text-[10px] font-mono text-muted-foreground">Tools & Services</span>
+              </div>
+
+              {/* Stack items */}
+              <div className="grid grid-cols-4 gap-4">
+                {[
+                  { name: 'VS Code', icon: '💻', color: 'bg-blue-500/5 border-blue-500/20' },
+                  { name: 'GitHub', icon: '🐙', color: 'bg-zinc-500/5 border-zinc-500/20' },
+                  { name: 'Supabase', icon: '⚡', color: 'bg-emerald-500/5 border-emerald-500/20' },
+                  { name: 'Docker', icon: '🐳', color: 'bg-sky-500/5 border-sky-500/20' },
+                  { name: 'Firebase', icon: '🔥', color: 'bg-amber-500/5 border-amber-500/20' },
+                  { name: 'Postman', icon: '📮', color: 'bg-orange-500/5 border-orange-500/20' },
+                  { name: 'Vercel', icon: '▲', color: 'bg-foreground/5 border-border' },
+                  { name: 'Claude', icon: '🤖', color: 'bg-purple-500/5 border-purple-500/20' },
+                ].map((stk) => (
+                  <div key={stk.name} className="flex flex-col items-center text-center">
+                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center mb-1.5 ${stk.color} group-hover:scale-105 transition-transform duration-300 shadow-sm overflow-hidden p-2 bg-secondary/20`}>
+                      {getSkillIcon(stk.name, false)}
+                    </div>
+                    <span className="text-[10px] font-medium text-muted-foreground font-mono truncate max-w-full">{stk.name}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* 6. GITHUB CONTRIBUTION HEATMAP */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+              className="group relative rounded-2xl border border-border/60 bg-card p-6 shadow-sm hover:border-accent/40 hover:shadow-accent/5 transition-all duration-300"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-accent font-bold">GitHub Activity</span>
+                <span className="text-[10px] font-mono text-muted-foreground">Heatmap</span>
+              </div>
+
+              {/* Grid of green squares representing contribution heatmap */}
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-1">
+                  {Array.from({ length: 96 }).map((_, idx) => {
+                    // Weighted random green shading
+                    const opacityClass =
+                      idx % 9 === 0
+                        ? 'bg-accent/80'
+                        : idx % 6 === 0
+                        ? 'bg-accent/60'
+                        : idx % 4 === 0
+                        ? 'bg-accent/30'
+                        : idx % 3 === 0
+                        ? 'bg-accent/15'
+                        : 'bg-secondary/40';
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`aspect-square rounded-[2px] transition-all hover:scale-125 duration-100 ${opacityClass}`}
+                      />
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/40">
+                  <div>
+                    <p className="text-base font-extrabold text-foreground leading-none">1.8K+</p>
+                    <p className="text-[10px] text-muted-foreground font-mono mt-1">Contributions</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-base font-extrabold text-foreground leading-none">12</p>
+                    <p className="text-[10px] text-muted-foreground font-mono mt-1">Repositories</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
           </div>
         </div>
       </section>
@@ -1245,6 +1523,7 @@ const Portfolio = () => {
                         key={skill.name}
                         className="inline-flex items-center rounded-lg border border-border/50 bg-secondary/30 px-3 py-1.5 text-xs font-semibold text-foreground hover:border-accent/35 hover:bg-accent/5 hover:text-accent transition-all cursor-default"
                       >
+                        {getSkillIcon(skill.name)}
                         {skill.name}
                       </span>
                     ))}
@@ -1372,7 +1651,7 @@ const Portfolio = () => {
 
                   <div className={`grid ${isFirstFull ? 'lg:grid-cols-[1.2fr_0.8fr]' : 'grid-cols-1'} gap-0 h-full`}>
                     {/* Image */}
-                    <div className="aspect-[16/10] lg:aspect-auto min-h-[200px] bg-secondary/30 relative overflow-hidden flex items-center justify-center p-5 border-b lg:border-b-0 lg:border-r border-border/20">
+                    <div className="aspect-video w-full bg-secondary/30 relative overflow-hidden flex items-center justify-center p-5 border-b lg:border-b-0 lg:border-r border-border/20">
                       <div className="absolute inset-0 bg-gradient-to-tr from-accent/8 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       <div className="w-full h-full relative rounded-xl overflow-hidden shadow-md border border-border/30 group-hover:scale-[1.02] transition-transform duration-500">
                         {project.imageUrl ? (
@@ -1553,36 +1832,7 @@ const Portfolio = () => {
       </section>
     ),
 
-    education: (
-      <section key="education" id="education" className="py-24 bg-background border-y border-border/40">
-        <div className="container-wide max-w-5xl">
-          <div className="grid lg:grid-cols-[0.7fr_1.3fr] gap-8 lg:gap-14 items-start">
-            <div>
-              <h2 className={sectionTitle} style={{ lineHeight: 1.15 }}>
-                {lang === 'vi' ? 'Học vấn & Nền tảng' : 'Academic Background'}
-              </h2>
-            </div>
 
-            <motion.div
-              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp}
-              className="rounded-2xl border border-border/40 bg-card p-6 md:p-8"
-            >
-              <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="w-12 h-12 shrink-0 rounded-xl bg-accent/8 border border-accent/15 flex items-center justify-center text-accent">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight text-foreground mb-1">{data.education.school}</h3>
-                  <p className="font-semibold text-foreground/80 mb-1">{data.education.degree}</p>
-                  <p className="text-[12px] font-mono text-accent mb-4">{data.education.duration}</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{data.education.note}</p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-    ),
 
     philosophy: (
       <section key="philosophy" id="philosophy" className="py-24 bg-background relative overflow-hidden">
@@ -1697,7 +1947,7 @@ const Portfolio = () => {
     ),
   };
 
-  const alwaysShownSections = ['about', 'services', 'aiWorkflow', 'nowBuilding', 'education', 'philosophy', 'contact'];
+  const alwaysShownSections = ['about', 'services', 'aiWorkflow', 'nowBuilding', 'philosophy', 'contact'];
 
   return (
     <div className="min-h-screen bg-background selection:bg-accent/20 selection:text-accent font-sans text-foreground overflow-x-hidden antialiased">
@@ -1742,7 +1992,6 @@ const Portfolio = () => {
         {sectionMap.nowBuilding}
         {visibleSections.includes('experience') && sectionMap.experience}
         {visibleSections.includes('testimonials') && sectionMap.testimonials}
-        {sectionMap.education}
         {sectionMap.philosophy}
         {sectionMap.contact}
 

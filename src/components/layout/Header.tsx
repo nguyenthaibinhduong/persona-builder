@@ -13,8 +13,7 @@ const Header = () => {
 
   const links = [
     { to: '/', label: t('nav.portfolio') },
-    { to: '/work', label: t('nav.work') },
-    { to: '/cv-builder', label: t('nav.cv_builder') },
+    { to: '/my-orders', label: t('nav.my_orders') },
   ];
 
   const isActive = (path: string) => location.pathname === path;
